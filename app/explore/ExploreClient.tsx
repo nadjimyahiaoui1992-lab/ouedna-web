@@ -5,8 +5,22 @@ import { useRouter } from 'next/navigation';
 import {
   MapPin, Phone, Mail, Clock, Star, ChevronLeft, ChevronRight,
   ArrowRight, Menu, Landmark, Tent, Camera, Quote, Sun, ImageIcon,
-  Sparkles, Heart, Bookmark, Facebook, Instagram, Youtube, Twitter
+  Sparkles, Heart, Bookmark
 } from 'lucide-react';
+
+// --- أيقونات التواصل الاجتماعي (SVG مضمّنة، لا تعتمد على إصدار lucide-react) ---
+const FacebookIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94Z"/></svg>
+);
+const InstagramIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2.5" y="2.5" width="19" height="19" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1"/></svg>
+);
+const YoutubeIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.6-.46-5.3a2.9 2.9 0 0 0-2-2C18.9 4.2 12 4.2 12 4.2s-6.9 0-8.54.5a2.9 2.9 0 0 0-2 2C1 8.4 1 12 1 12s0 3.6.46 5.3a2.9 2.9 0 0 0 2 2c1.64.5 8.54.5 8.54.5s6.9 0 8.54-.5a2.9 2.9 0 0 0 2-2C23 15.6 23 12 23 12ZM9.75 15.5v-7l6.27 3.5-6.27 3.5Z"/></svg>
+);
+const XIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-6.9l-5.4-6.6L4.7 22H1.6l8.1-9.3L1 2h7.1l4.9 6.1L18.9 2Zm-1.2 18h1.9L7.4 3.9H5.4L17.7 20Z"/></svg>
+);
 
 // --- Types ---
 type Place = {
@@ -497,10 +511,10 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
                 منصة سياحية ذكية لولاية الوادي، اكتشف جمال الوادي ومعالمها السياحية وتراثها العريق من خلال منصة رقمية ذكية.
               </p>
               <div className="flex gap-3">
-                <button className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500 hover:text-black transition-colors flex items-center justify-center"><Facebook size={16} /></button>
-                <button className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500 hover:text-black transition-colors flex items-center justify-center"><Instagram size={16} /></button>
-                <button className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500 hover:text-black transition-colors flex items-center justify-center"><Youtube size={16} /></button>
-                <button className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500 hover:text-black transition-colors flex items-center justify-center"><Twitter size={16} /></button>
+                <button className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500 hover:text-black transition-colors flex items-center justify-center"><FacebookIcon size={16} /></button>
+                <button className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500 hover:text-black transition-colors flex items-center justify-center"><InstagramIcon size={16} /></button>
+                <button className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500 hover:text-black transition-colors flex items-center justify-center"><YoutubeIcon size={16} /></button>
+                <button className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500 hover:text-black transition-colors flex items-center justify-center"><XIcon size={16} /></button>
               </div>
             </div>
             <div>
