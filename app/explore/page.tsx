@@ -39,4 +39,4 @@ export default async function ExplorePage() {
       testimonials={testimonials ?? []}
     />
   );
-}
+}
