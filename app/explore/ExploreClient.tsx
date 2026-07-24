@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  MapPin, Phone, Mail, Clock, Star, ChevronLeft, ChevronRight,
-  ArrowRight, Menu, Landmark, Tent, Camera, Quote, Navigation, Sun, ImageIcon, Sparkles, Heart
+  MapPin, Phone, Mail, Clock, Star, ChevronLeft,
+  ArrowRight, Menu, Landmark, Tent, Camera, Quote, Sun, ImageIcon, Sparkles, Heart
 } from 'lucide-react';
 
 // --- Types ---
@@ -19,7 +19,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const HERO_IMG = 'https://images.unsplash.com/photo-1542332213-9b5a5a3fad35?q=80&w=2000&auto=format&fit=crop';
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1542601098-8fc114e148e2?q=80&w=800&auto=format&fit=crop';
 
-// --- دوال تحليل الصور من قاعدة البيانات (كما كانت في كودك الأصلي) ---
+// --- دوال تحليل الصور من قاعدة البيانات ---
 function parseImages(input: any): string[] {
   if (!input) return [];
   if (Array.isArray(input)) return input.map((item) => String(item).replace(/["'[\]]/g, '').trim()).filter(Boolean);
@@ -54,7 +54,7 @@ function getPlaceImages(place: Place): string[] {
   return list.length > 0 ? list : [FALLBACK_IMG];
 }
 
-// --- العادات والتقاليد (ثابتة لأنها غير موجودة في جداول DB الحالية) ---
+// --- العادات والتقاليد ---
 const TRADITIONS = [
   { title: 'الزي التقليدي الصحراوي', desc: 'زي أصيل يعكس هوية المنطقة وتراثها العريق', img: 'https://images.unsplash.com/photo-1596742572435-08146c52bbec?q=80&w=500' },
   { title: 'صناعة الحلي الفضية', desc: 'حرفة تقليدية متوارثة في صناعة الحلي الفضية', img: 'https://images.unsplash.com/photo-1611085583191-a3b1a60d6c96?q=80&w=500' },
@@ -74,7 +74,6 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // جلب المعلم الأول من قاعدة البيانات ليكون المعلم المميز
   const featuredPlace = places.length > 0 ? places[0] : null;
   const featuredImages = featuredPlace ? getPlaceImages(featuredPlace) : [];
   const coverImg = featuredImages[0] || FALLBACK_IMG;
@@ -88,7 +87,7 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
         * { font-family: 'Tajawal', sans-serif; }
       `}</style>
 
-      {/* --- القائمة العلوية (Navbar) --- */}
+      {/* --- القائمة العلوية --- */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled ? 'bg-[#050b0d]/95 backdrop-blur-md py-3 shadow-lg border-b border-white/5' : 'bg-transparent py-5'}`}>
         <div className="container mx-auto px-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -120,7 +119,7 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
         </div>
       </nav>
 
-      {/* --- قسم الهيرو والبطاقات (Services) --- */}
+      {/* --- الهيرو والخدمات --- */}
       <section className="relative min-h-[90vh] flex flex-col justify-center items-center pb-32">
         <div className="absolute inset-0 z-0">
           <img src={HERO_IMG} alt="غروب الشمس في الوادي" className="w-full h-full object-cover" />
@@ -130,7 +129,7 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
         <div className="relative z-10 container mx-auto px-6 flex flex-col items-center text-center mt-20">
           <div className="mb-6 inline-flex items-center gap-2 bg-amber-500/20 border border-amber-500/30 px-4 py-1.5 rounded-full">
             <Sun size={14} className="text-amber-400" />
-            <span className="text-amber-400 text-xs font-bold">الجزائر — ولاية الوادي (السوف)</span>
+            <span className="text-amber-400 text-xs font-bold">الجزائر &mdash; ولاية الوادي (السوف)</span>
           </div>
           <h2 className="text-5xl md:text-7xl font-black mb-6 drop-shadow-2xl text-white">اكتشف سحر ولاية الوادي</h2>
           <h3 className="text-xl md:text-2xl text-amber-400 font-bold mb-6">حيث تلتقي الطبيعة الخلابة بالتراث العريق</h3>
@@ -161,11 +160,9 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
         </div>
       </section>
 
-      {/* --- قسم المعالم (يُبنى ديناميكياً من قاعدة البيانات) --- */}
+      {/* --- المعالم (ديناميكي) --- */}
       <section className="pt-32 pb-20 relative z-10 bg-[#070d10]" id="landmarks">
         <div className="container mx-auto px-6">
-          
-          {/* عنوان القسم مطابق للصورة */}
           <div className="flex justify-between items-end mb-10">
             <div>
               <div className="flex items-center gap-2 text-amber-500 mb-2">
@@ -185,7 +182,6 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
             )}
           </div>
 
-          {/* المعلم المميز الأول من الداتا بيز (مطابق لتنسيق قصر نايل) */}
           {!featuredPlace ? (
             <div className="text-center py-20 bg-[#0b1619] rounded-[3rem] border border-white/5">
               <Landmark size={48} className="mx-auto text-gray-600 mb-4" />
@@ -193,8 +189,6 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
             </div>
           ) : (
             <div className="bg-[#0b1619] rounded-[3rem] border border-white/5 p-4 sm:p-6 flex flex-col lg:flex-row gap-8 shadow-2xl relative overflow-hidden mb-8">
-              
-              {/* التفاصيل على اليمين (في RTL) */}
               <div className="lg:w-1/2 flex flex-col justify-center px-2 py-4 lg:py-8 order-2 lg:order-1">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 text-amber-500">
@@ -217,7 +211,6 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
                   {featuredPlace.description || 'لا يوجد وصف متاح لهذا المعلم في قاعدة البيانات حالياً.'}
                 </p>
 
-                {/* شبكة المعلومات (استخدام الإحداثيات إذا توفرت) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
                   <div className="flex items-center gap-4">
                     <MapPin className="text-amber-500" size={24} strokeWidth={1.5} />
@@ -267,12 +260,10 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
                 </div>
               </div>
 
-              {/* الصورة ومعرض الصور على اليسار (في RTL) */}
               <div className="lg:w-1/2 relative rounded-[2.5rem] overflow-hidden min-h-[400px] order-1 lg:order-2 group">
                 <img src={coverImg} alt={featuredPlace.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#070d10]/90 via-transparent to-transparent" />
                 
-                {/* أيقونة حفظ */}
                 <div className="absolute top-6 right-6 bg-black/40 backdrop-blur text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-1">
                   <ImageIcon size={14} /> معرض الصور
                 </div>
@@ -295,7 +286,6 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
             </div>
           )}
 
-          {/* عرض باقي المعالم كشبكة إذا ضغط المستخدم على "عرض الكل" */}
           {showAllPlaces && places.length > 1 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
               {places.slice(1).map((place) => {
@@ -324,7 +314,179 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
         </div>
       </section>
 
-      {/* --- قسم عادات وتقاليد ولاية الوادي (ثابت) --- */}
+      {/* --- عادات وتقاليد (ثابت) --- */}
       <section className="py-20 bg-[#070d10]">
         <div className="container mx-auto px-6">
-      
+          <div className="flex justify-between items-end mb-10">
+            <div>
+              <div className="flex items-center gap-2 text-amber-500 mb-2">
+                <Tent size={24} />
+                <h2 className="text-3xl font-black text-white">عادات وتقاليد ولاية الوادي</h2>
+              </div>
+            </div>
+            <button className="px-6 py-2.5 rounded-full border border-white/20 text-xs font-bold hover:bg-white/10 transition-colors hidden sm:block">
+              عرض الكل
+            </button>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            {TRADITIONS.map((trad, idx) => (
+              <div key={idx} className="relative rounded-3xl overflow-hidden aspect-[3/4] group cursor-pointer border border-white/10">
+                <img src={trad.img} alt={trad.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#070d10] via-black/40 to-transparent opacity-90" />
+                <div className="absolute inset-0 p-5 flex flex-col justify-end text-center">
+                  <h4 className="text-white font-bold text-sm mb-2 group-hover:text-amber-400 transition-colors">{trad.title}</h4>
+                  <p className="text-[10px] text-gray-300 leading-relaxed">{trad.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* --- الأرشيف (ديناميكي) --- */}
+      <section className="py-20 bg-[#070d10]">
+        <div className="container mx-auto px-6">
+          <div className="flex justify-between items-end mb-10">
+            <div>
+              <div className="flex items-center gap-2 text-teal-500 mb-2">
+                <Camera size={24} />
+                <h2 className="text-3xl font-black text-white">ذكرى في ولاية الوادي</h2>
+              </div>
+              <p className="text-gray-400 text-sm mt-2">لمحات من الأرشيف تحكي وجه الوادي عبر الزمن</p>
+            </div>
+          </div>
+
+          {oldMemories.length === 0 ? (
+            <div className="text-center py-10 bg-[#0b1619] rounded-3xl border border-white/5">
+              <p className="text-gray-500">لم تُضف صور أرشيفية في قاعدة البيانات بعد.</p>
+            </div>
+          ) : (
+            <div className="columns-2 sm:columns-3 lg:columns-4 gap-4 space-y-4">
+              {oldMemories.map((m) => {
+                const mImgs = parseImages(m.image_url);
+                const imgSrc = mImgs[0] || FALLBACK_IMG;
+                return (
+                  <div key={m.id} className="relative break-inside-avoid rounded-2xl overflow-hidden border border-white/5 group">
+                    <img src={imgSrc} alt={m.caption || 'ذكرى'} className="w-full object-cover sepia-[.3] group-hover:sepia-0 transition-all duration-500" />
+                    {m.year && <div className="absolute top-2 right-2 bg-black/60 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-amber-300 border border-white/10">{m.year}</div>}
+                    {m.caption && <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-3 text-xs text-gray-200">{m.caption}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* --- آراء الزوار (ديناميكي) --- */}
+      <section className="py-20 bg-[#070d10]">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4">
+            <div className="flex items-center gap-2 text-amber-500">
+              <Quote size={24} />
+              <div>
+                <h2 className="text-3xl font-black text-white">آراء واقتراحات الزوار</h2>
+                <p className="text-gray-400 text-xs mt-1">ما يقوله الزوار عن زيارتهم لولاية الوادي</p>
+              </div>
+            </div>
+            <button className="bg-amber-500 text-black font-bold py-2.5 px-6 rounded-xl text-xs hover:bg-amber-400 transition-colors shadow-lg">
+              أكتب رأيك
+            </button>
+          </div>
+
+          {testimonials.length === 0 ? (
+            <div className="text-center py-10 bg-[#0b1619] rounded-3xl border border-white/5">
+              <p className="text-gray-500">لا توجد تجارب منشورة في قاعدة البيانات بعد. كن أول المشاركين!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {testimonials.map((t) => (
+                <div key={t.id} className="bg-[#0b1619] rounded-3xl p-6 border border-white/5 relative flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex gap-3 items-center">
+                        <div className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center font-bold text-amber-400 text-lg">
+                          {(t.name || 'ز').charAt(0)}
+                        </div>
+                        <h4 className="font-bold text-sm text-white">{t.name || 'زائر مجهول'}</h4>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 text-amber-400 mb-4">
+                      {[1,2,3,4,5].map(s => <Star key={s} size={12} fill="currentColor" />)}
+                    </div>
+                    <p className="text-xs text-gray-300 leading-relaxed mb-4">&quot;{t.message}&quot;</p>
+                  </div>
+                  {t.created_at && (
+                    <span className="text-[10px] text-gray-600 block mt-auto border-t border-white/5 pt-3">
+                      {new Date(t.created_at).toLocaleDateString('ar-DZ')}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* --- الفوتر --- */}
+      <footer className="bg-[#050b0d] border-t border-white/5 pt-16 pb-8 mt-10">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-tr from-teal-600 to-amber-500 rounded-full flex items-center justify-center p-1">
+                  <div className="w-full h-full bg-[#050b0d] rounded-full flex items-center justify-center">
+                    <Sun size={20} className="text-amber-500" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-black text-white">سوف 360</h3>
+              </div>
+              <p className="text-gray-400 text-xs leading-relaxed mb-6">
+                منصة سياحية ذكية لولاية الوادي، اكتشف جمال الوادي ومعالمها السياحية وتراثها العريق من خلال منصة رقمية ذكية.
+              </p>
+              <div className="flex gap-3">
+                <button className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500 hover:text-black transition-colors flex items-center justify-center text-sm">𝕏</button>
+                <button className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500 hover:text-black transition-colors flex items-center justify-center text-sm">in</button>
+                <button className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-amber-500 hover:text-black transition-colors flex items-center justify-center text-sm">fb</button>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-bold text-white mb-6">روابط سريعة</h4>
+              <ul className="space-y-4 text-sm text-gray-400">
+                <li><a href="#" className="hover:text-amber-400 transition-colors flex items-center gap-2"><ChevronLeft size={14}/> الرئيسية</a></li>
+                <li><a href="#" className="hover:text-amber-400 transition-colors flex items-center gap-2"><ChevronLeft size={14}/> المعالم السياحية</a></li>
+                <li><a href="#" className="hover:text-amber-400 transition-colors flex items-center gap-2"><ChevronLeft size={14}/> العادات والتقاليد</a></li>
+                <li><a href="#" className="hover:text-amber-400 transition-colors flex items-center gap-2"><ChevronLeft size={14}/> من نحن</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold text-white mb-6">تواصل معنا</h4>
+              <ul className="space-y-4 text-sm text-gray-400">
+                <li className="flex items-center gap-3"><Phone size={16} className="text-amber-500" /> <span dir="ltr">+213 32 12 34 56</span></li>
+                <li className="flex items-center gap-3"><Mail size={16} className="text-amber-500" /> info@souf360.dz</li>
+                <li className="flex items-center gap-3"><MapPin size={16} className="text-amber-500" /> مدينة الوادي، الجزائر</li>
+                <li className="flex items-center gap-3 text-xs"><Clock size={16} className="text-amber-500" /> من 08:00 ص إلى 18:00 م</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold text-white mb-6">تطبيق الهاتف</h4>
+              <p className="text-xs text-gray-400 mb-4">حمل تطبيق سوف 360 واستكشف المعالم السياحية بسهولة.</p>
+              <div className="flex flex-col gap-3">
+                <button className="flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-xl py-3 hover:bg-white/10 transition-colors">
+                  <span className="text-sm font-bold text-white">Google Play</span>
+                </button>
+                <button className="flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-xl py-3 hover:bg-white/10 transition-colors">
+                  <span className="text-sm font-bold text-white">App Store</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500">
+            <p>&copy; {new Date().getFullYear()} سوف 360 - جميع الحقوق محفوظة</p>
+            <p className="mt-2 md:mt-0">منصة السياحة التفاعلية لولاية الوادي</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
