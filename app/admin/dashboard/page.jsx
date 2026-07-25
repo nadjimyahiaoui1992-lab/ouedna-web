@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../../lib/supabase/client';
-import AddPlaceForm from '@/components/map/admin/AddPlaceForm'; 
+import AddPlaceForm from '@/components/map/admin/AddPlaceForm';
 
 /* ---------------------------------------------------------
    ثوابت عامة وأيقونات
@@ -27,7 +27,7 @@ const IconChevron = ({ open }) => (
 
 export default function DashboardPage() {
   /* ---------- حالة التنقل ---------- */
-  const [view, setView] = useState('overview'); 
+  const [view, setView] = useState('overview');
   const [placesMenuOpen, setPlacesMenuOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -150,7 +150,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#334155] font-sans flex selection:bg-[#D4AF37] selection:text-white" dir="rtl">
-      
+
       {/* --- التنبيهات المنبثقة --- */}
       <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-3">
         {toasts.map((t) => (
@@ -163,7 +163,7 @@ export default function DashboardPage() {
 
       {/* ===================== الشريط الجانبي ===================== */}
       <aside className={`${mobileSidebarOpen ? 'block fixed inset-y-0 right-0 z-40' : 'hidden md:flex'} w-72 bg-white flex-col py-6 px-4 border-l border-[#E2E8F0] shadow-sm transition-transform overflow-y-auto`}>
-        
+
         <div className="flex items-center gap-4 px-3 mb-10">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#D4AF37] to-[#B8962E] shadow-md shrink-0">
             <span className="text-white font-black text-2xl drop-shadow-sm">س</span>
@@ -174,7 +174,7 @@ export default function DashboardPage() {
           </div>
           <button onClick={() => setMobileSidebarOpen(false)} className="mr-auto text-[#94A3B8] hover:text-[#0F172A] md:hidden p-2">✕</button>
         </div>
-        
+
         <nav className="flex-1 flex flex-col gap-2.5">
           <button className={`flex items-center gap-3.5 p-3.5 text-sm font-bold rounded-xl text-right transition-all duration-300 ${view === 'overview' ? 'bg-[#F8FAFC] text-[#B8962E] shadow-sm ring-1 ring-[#E2E8F0]' : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]'}`} onClick={() => goTo('overview')}>
             <span className="text-lg">📊</span> المركز الرئيسي
@@ -225,7 +225,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </aside>
-      
+
       {mobileSidebarOpen && <div className="fixed inset-0 bg-[#0F172A]/40 backdrop-blur-sm z-30 md:hidden" onClick={() => setMobileSidebarOpen(false)} />}
 
       {/* ===================== المحتوى الرئيسي ===================== */}
@@ -234,7 +234,7 @@ export default function DashboardPage() {
         {/* ---------- الرأس العلوي ---------- */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-[#E2E8F0] px-8 py-4 flex items-center gap-4 sticky top-0 z-20">
           <button onClick={() => setMobileSidebarOpen(true)} className="p-2 text-[#64748B] bg-[#F1F5F9] rounded-lg md:hidden">☰</button>
-          
+
           <div className="hidden sm:flex flex-col">
             <h2 className="text-lg font-black text-[#0F172A]">نظام إدارة المنصة</h2>
             <p className="text-xs text-[#64748B] font-medium">الإصدار الرسمي للعرض التقديمي</p>
@@ -249,7 +249,7 @@ export default function DashboardPage() {
               <span className={`w-2 h-2 rounded-full ${dbOnline ? 'bg-[#10B981] animate-pulse' : 'bg-[#EF4444]'}`} />
               الخادم {dbOnline ? 'متصل' : 'مفصول'}
             </span>
-            
+
             <div className="relative">
               <button onClick={() => setSiteMenuOpen(!siteMenuOpen)} className={`text-xs font-black px-4 py-2.5 rounded-lg flex items-center gap-2 cursor-pointer transition-all ${SITE_STATUS_MAP[siteStatus].badge}`}>
                 {SITE_STATUS_MAP[siteStatus].text}
@@ -268,7 +268,7 @@ export default function DashboardPage() {
 
         {/* ---------- محتوى الصفحات ---------- */}
         <main className="flex-1 p-6 sm:p-10 overflow-y-auto">
-          
+
           {/* 1. المركز الإحصائي */}
           {view === 'overview' && (
             <div className="space-y-8 max-w-7xl mx-auto animate-fade-in">
@@ -314,6 +314,9 @@ export default function DashboardPage() {
                     <tr><th className="p-5 font-bold">اسم المعلم</th><th className="p-5 font-bold">التصنيف الرئيسي</th><th className="p-5 font-bold">حالة الظهور</th><th className="p-5 font-bold text-left">إدارة السجل</th></tr>
                   </thead>
                   <tbody>
+                    {places.length === 0 && !isLoading && (
+                      <tr><td colSpan={4} className="p-10 text-center text-[#94A3B8] font-bold">لا توجد سجلات معالم حتى الآن</td></tr>
+                    )}
                     {places.map(p => (
                       <tr key={p.id} className="border-b border-[#F1F5F9] hover:bg-[#F8FAFC] transition-colors">
                         <td className="p-5 font-black text-[#0F172A]">{p.name}</td>
@@ -339,4 +342,202 @@ export default function DashboardPage() {
                 <div>
                   <h2 className="text-xl font-black text-[#0F172A]">التوثيق التراثي</h2>
                   <p className="text-sm text-[#64748B] mt-1">إدارة عناصر عادات وتقاليد الوادي</p>
- 
+                </div>
+                <button onClick={() => setShowHeritageForm(true)} className="bg-[#D4AF37] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#B8962E] transition-colors shadow-sm">＋ توثيق عنصر جديد</button>
+              </div>
+
+              {heritageItems.length === 0 && !isLoading && (
+                <div className="bg-white rounded-2xl border border-[#E2E8F0] p-10 text-center text-[#94A3B8] font-bold">لا توجد عناصر تراثية موثقة بعد</div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {heritageItems.map(h => (
+                  <div key={h.id} className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden flex flex-col">
+                    <img src={h.image} alt={h.title} className="w-full h-40 object-cover" />
+                    <div className="p-5 flex flex-col flex-1">
+                      <h3 className="font-black text-[#0F172A] text-base mb-2">{h.title}</h3>
+                      <p className="text-sm text-[#64748B] leading-relaxed flex-1 line-clamp-3">{h.text}</p>
+                      <button onClick={() => deleteItem('heritage', h.id, setHeritageItems)} className="mt-4 text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-4 py-2 rounded-lg text-xs font-bold transition-colors self-start">حذف العنصر</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {showHeritageForm && (
+                <div className="fixed inset-0 bg-[#0F172A]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowHeritageForm(false)}>
+                  <form onSubmit={submitHeritageForm} onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 space-y-5">
+                    <h3 className="text-lg font-black text-[#0F172A]">توثيق عنصر تراثي جديد</h3>
+
+                    <div>
+                      <label className="block text-xs font-bold text-[#64748B] mb-1.5">عنوان العنصر</label>
+                      <input required value={heritageForm.title} onChange={(e) => setHeritageForm(f => ({ ...f, title: e.target.value }))} className="w-full border border-[#E2E8F0] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" placeholder="مثال: النقش الأمازيغي التقليدي" />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-[#64748B] mb-1.5">رابط الصورة (اختياري)</label>
+                      <input value={heritageForm.image} onChange={(e) => setHeritageForm(f => ({ ...f, image: e.target.value }))} className="w-full border border-[#E2E8F0] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" placeholder="https://..." />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-[#64748B] mb-1.5">الوصف التفصيلي</label>
+                      <textarea required value={heritageForm.text} onChange={(e) => setHeritageForm(f => ({ ...f, text: e.target.value }))} rows={4} className="w-full border border-[#E2E8F0] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] resize-none" placeholder="اكتب وصفًا للعنصر التراثي..." />
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <button type="submit" className="flex-1 bg-[#D4AF37] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#B8962E] transition-colors">حفظ التوثيق</button>
+                      <button type="button" onClick={() => setShowHeritageForm(false)} className="flex-1 bg-[#F1F5F9] text-[#334155] py-2.5 rounded-lg text-sm font-bold hover:bg-[#E2E8F0] transition-colors">إلغاء</button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 5. ذكريات الزوار */}
+          {view === 'memories' && (
+            <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
+              <div className="bg-white p-6 rounded-2xl border border-[#E2E8F0] shadow-sm">
+                <h2 className="text-xl font-black text-[#0F172A]">ذكريات الزوار</h2>
+                <p className="text-sm text-[#64748B] mt-1">مراجعة واعتماد الصور والقصص المرسلة من الزوار</p>
+              </div>
+
+              {memories.length === 0 && !isLoading && (
+                <div className="bg-white rounded-2xl border border-[#E2E8F0] p-10 text-center text-[#94A3B8] font-bold">لا توجد ذكريات مرسلة بعد</div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {memories.map(m => (
+                  <div key={m.id} className={`bg-white rounded-2xl border ${m.approved ? 'border-[#E2E8F0]' : 'border-[#FDE68A] ring-2 ring-[#FFFBEB]'} shadow-sm overflow-hidden flex flex-col`}>
+                    {m.image && <img src={m.image} alt="ذكرى زائر" className="w-full h-40 object-cover" />}
+                    <div className="p-5 flex flex-col flex-1 gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-[#0F172A] text-sm">{m.visitor_name || 'زائر مجهول'}</span>
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${m.approved ? 'bg-[#ECFDF5] text-[#065F46]' : 'bg-[#FFFBEB] text-[#B45309]'}`}>{m.approved ? 'منشور' : 'بانتظار المراجعة'}</span>
+                      </div>
+                      <p className="text-sm text-[#64748B] leading-relaxed flex-1 line-clamp-3">{m.story || m.text}</p>
+                      <div className="flex gap-2 pt-2">
+                        {!m.approved && (
+                          <button onClick={() => approveMemory(m.id)} className="flex-1 bg-[#ECFDF5] text-[#065F46] hover:bg-[#D1FAE5] px-4 py-2 rounded-lg text-xs font-bold transition-colors">اعتماد ونشر</button>
+                        )}
+                        <button onClick={() => deleteItem('memories', m.id, setMemories)} className="flex-1 text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-4 py-2 rounded-lg text-xs font-bold transition-colors">حذف</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 6. الآراء والشكاوى */}
+          {view === 'feedback' && (
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden max-w-7xl mx-auto animate-fade-in">
+              <div className="p-6 border-b border-[#E2E8F0] bg-[#F8FAFC]">
+                <h2 className="text-xl font-black text-[#0F172A]">آراء وشكاوى الجمهور</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-sm">
+                  <thead className="bg-white text-[#64748B] border-b-2 border-[#F1F5F9]">
+                    <tr><th className="p-5 font-bold">المرسل</th><th className="p-5 font-bold">الرسالة</th><th className="p-5 font-bold text-left">إدارة</th></tr>
+                  </thead>
+                  <tbody>
+                    {feedbacks.length === 0 && !isLoading && (
+                      <tr><td colSpan={3} className="p-10 text-center text-[#94A3B8] font-bold">لا توجد رسائل حتى الآن</td></tr>
+                    )}
+                    {feedbacks.map(f => (
+                      <tr key={f.id} className="border-b border-[#F1F5F9] hover:bg-[#F8FAFC] transition-colors align-top">
+                        <td className="p-5 font-black text-[#0F172A] whitespace-nowrap">{f.name || 'مجهول'}</td>
+                        <td className="p-5 text-[#475569] font-medium">{f.message}</td>
+                        <td className="p-5 text-left">
+                          <button onClick={() => deleteItem('feedbacks', f.id, setFeedbacks)} className="text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-4 py-1.5 rounded-md text-xs font-bold transition-colors">حذف</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* 7. إدارة الصلاحيات */}
+          {view === 'admins' && (
+            <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
+              <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-[#E2E8F0] shadow-sm">
+                <div>
+                  <h2 className="text-xl font-black text-[#0F172A]">إدارة الصلاحيات</h2>
+                  <p className="text-sm text-[#64748B] mt-1">إضافة وإدارة حسابات المشرفين على المنصة</p>
+                </div>
+                <button onClick={() => setShowAdminForm(true)} className="bg-[#D4AF37] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#B8962E] transition-colors shadow-sm">＋ إضافة مشرف</button>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-sm">
+                    <thead className="bg-white text-[#64748B] border-b-2 border-[#F1F5F9]">
+                      <tr><th className="p-5 font-bold">الاسم</th><th className="p-5 font-bold">البريد الإلكتروني</th><th className="p-5 font-bold">الصلاحية</th><th className="p-5 font-bold">الحالة</th><th className="p-5 font-bold text-left">إدارة</th></tr>
+                    </thead>
+                    <tbody>
+                      {admins.length === 0 && !isLoading && (
+                        <tr><td colSpan={5} className="p-10 text-center text-[#94A3B8] font-bold">لا يوجد مشرفون مسجلون</td></tr>
+                      )}
+                      {admins.map(a => (
+                        <tr key={a.id} className="border-b border-[#F1F5F9] hover:bg-[#F8FAFC] transition-colors">
+                          <td className="p-5 font-black text-[#0F172A]">{a.name}</td>
+                          <td className="p-5 text-[#475569] font-medium">{a.email}</td>
+                          <td className="p-5 text-[#475569] font-medium">{a.role}</td>
+                          <td className="p-5">
+                            <span className={`px-4 py-1.5 rounded-md text-xs font-black border ${a.active ? 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0]' : 'bg-[#F1F5F9] text-[#64748B] border-[#E2E8F0]'}`}>{a.active ? 'نشط' : 'موقوف'}</span>
+                          </td>
+                          <td className="p-5 text-left">
+                            <button onClick={() => deleteItem('admins', a.id, setAdmins)} className="text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-4 py-1.5 rounded-md text-xs font-bold transition-colors">إزالة</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {showAdminForm && (
+                <div className="fixed inset-0 bg-[#0F172A]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAdminForm(false)}>
+                  <form onSubmit={submitAdminForm} onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 space-y-5">
+                    <h3 className="text-lg font-black text-[#0F172A]">إضافة مشرف جديد</h3>
+
+                    <div>
+                      <label className="block text-xs font-bold text-[#64748B] mb-1.5">الاسم الكامل</label>
+                      <input required value={adminForm.name} onChange={(e) => setAdminForm(f => ({ ...f, name: e.target.value }))} className="w-full border border-[#E2E8F0] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" placeholder="الاسم الكامل" />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-[#64748B] mb-1.5">البريد الإلكتروني</label>
+                      <input required type="email" value={adminForm.email} onChange={(e) => setAdminForm(f => ({ ...f, email: e.target.value }))} className="w-full border border-[#E2E8F0] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" placeholder="example@domain.com" />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-[#64748B] mb-1.5">الصلاحية</label>
+                      <select value={adminForm.role} onChange={(e) => setAdminForm(f => ({ ...f, role: e.target.value }))} className="w-full border border-[#E2E8F0] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]">
+                        <option value="مشرف">مشرف</option>
+                        <option value="محرر">محرر</option>
+                        <option value="مدير">مدير</option>
+                      </select>
+                    </div>
+
+                    <label className="flex items-center gap-2.5 text-sm font-bold text-[#334155]">
+                      <input type="checkbox" checked={adminForm.active} onChange={(e) => setAdminForm(f => ({ ...f, active: e.target.checked }))} className="w-4 h-4 accent-[#D4AF37]" />
+                      حساب نشط فور الإنشاء
+                    </label>
+
+                    <div className="flex gap-3 pt-2">
+                      <button type="submit" className="flex-1 bg-[#D4AF37] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#B8962E] transition-colors">اعتماد المشرف</button>
+                      <button type="button" onClick={() => setShowAdminForm(false)} className="flex-1 bg-[#F1F5F9] text-[#334155] py-2.5 rounded-lg text-sm font-bold hover:bg-[#E2E8F0] transition-colors">إلغاء</button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+          )}
+
+        </main>
+      </div>
+    </div>
+  );
+}
