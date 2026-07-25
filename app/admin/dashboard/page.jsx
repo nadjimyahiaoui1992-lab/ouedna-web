@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import styles from '../admin.module.css';
-import { supabase } from '../../../lib/supabase/client'; // تم تصحيح المسار هنا
+import styles from '../../admin.module.css'; // تأكد من أن مسار ملف CSS صحيح (ربما تحتاج لـ '../../' للرجوع من dashboard ثم admin)
+import { supabase } from '../../../lib/supabase/client';
 
 /* ---------------------------------------------------------
    أيقونات صغيرة قابلة لإعادة الاستخدام
@@ -31,7 +31,7 @@ const IconChevron = ({ open }) => (
 );
 
 /* ---------------------------------------------------------
-   بيانات وهمية للأقسام التي لم تُربط بعد (التراث، الذكريات، الآراء)
+   بيانات وهمية للأقسام التي لم تُربط بعد
    --------------------------------------------------------- */
 const INITIAL_HERITAGE = [
   { id: 1, title: 'صناعة الزرابي التقليدية', image: 'https://images.unsplash.com/photo-1600166898405-da9535204843?w=400', text: 'حرفة يدوية متوارثة عبر الأجيال في الوادي.' },
@@ -81,7 +81,7 @@ export default function DashboardPage() {
   const [placeForm, setPlaceForm] = useState(EMPTY_PLACE_FORM);
 
   /* ---------- تأكيد الحذف + Toasts ---------- */
-  const [confirmTarget, setConfirmTarget] = useState(null); // { type, id }
+  const [confirmTarget, setConfirmTarget] = useState(null);
   const [toasts, setToasts] = useState([]);
 
   /* ---------- جلب البيانات من Supabase ---------- */
@@ -116,7 +116,6 @@ export default function DashboardPage() {
     setMobileSidebarOpen(false);
   }
 
-  /* ---------- تحديث الاتصال بقاعدة البيانات ---------- */
   async function refreshDb() {
     setRefreshing(true);
     const { error } = await supabase.from('places').select('id').limit(1);
@@ -125,14 +124,12 @@ export default function DashboardPage() {
     showToast(error ? 'فشل الاتصال بقاعدة البيانات' : 'تم تحديث حالة الاتصال بنجاح');
   }
 
-  /* ---------- تغيير حالة الموقع ---------- */
   function changeSiteStatus(status) {
     setSiteStatus(status);
     setSiteMenuOpen(false);
     showToast('تم تحديث حالة الموقع إلى: ' + SITE_STATUS_MAP[status].text);
   }
 
-  /* ---------- نموذج المعلم ---------- */
   function openAddPlace() {
     setEditingPlaceId(null);
     setPlaceForm(EMPTY_PLACE_FORM);
@@ -162,7 +159,6 @@ export default function DashboardPage() {
     };
 
     if (editingPlaceId) {
-      // تعديل
       const { error } = await supabase.from('places').update(dataToSave).eq('id', editingPlaceId);
       if (!error) {
         setPlaces((prev) => prev.map((p) => (p.id === editingPlaceId ? { ...p, ...dataToSave } : p)));
@@ -171,7 +167,6 @@ export default function DashboardPage() {
         showToast('حدث خطأ أثناء التحديث');
       }
     } else {
-      // إضافة
       const { data: newPlace, error } = await supabase.from('places').insert([dataToSave]).select();
       if (!error && newPlace) {
         setPlaces((prev) => [...prev, newPlace[0]]);
@@ -183,13 +178,11 @@ export default function DashboardPage() {
     closePlaceForm();
   }
 
-  /* ---------- الذاكرة: نشر ---------- */
   function approveMemory(id) {
     setMemories((prev) => prev.map((m) => (m.id === id ? { ...m, approved: true } : m)));
     showToast('تم نشر الذكرى');
   }
 
-  /* ---------- الحذف ---------- */
   function askDelete(type, id) {
     setConfirmTarget({ type, id });
   }
@@ -377,4 +370,11 @@ export default function DashboardPage() {
                           <img src={p.image} alt={p.name} loading="lazy" />
                           <div className="p-3">
                             <p className="font-bold text-sm truncate">{p.name}</p>
-                            <span className={`${styles.catChip} mt-1 inline-block`}>{p.categor
+                            <span className={`${styles.catChip} mt-1 inline-block`}>{p.category}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <EmptyState msg="لا توجد معالم منشورة بعد" />}
+                </div>
+              </se>
