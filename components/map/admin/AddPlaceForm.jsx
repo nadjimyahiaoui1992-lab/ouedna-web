@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-// تأكد من مسار ملف Supabase الخاص بك
-// import { supabase } from '@/lib/supabase/client';
+import { OpenLocationCode } from 'open-location-code';
+import { supabase } from '@/lib/supabase/client'; // عدّل هذا المسار إذا كان ملف supabase عندك في مكان مختلف
+// ملاحظة: خاصية Plus Code تحتاج تثبيت المكتبة أولاً:  npm install open-location-code
+
+const olc = new OpenLocationCode();
 
 const CATEGORIES = {
   'معلم طبيعي': [],
@@ -44,7 +47,9 @@ export default function AddPlaceForm() {
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
-  const [locating, setLocating] = useState(false);
+  const [plusCodeInput, setPlusCodeInput] = useState('');
+  const [resolvingCode, setResolvingCode] = useState(false);
+  const [plusCodeError, setPlusCodeError] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -152,29 +157,68 @@ export default function AddPlaceForm() {
     }));
   };
 
-  // زر "استخدم موقعي الحالي" — مفيد جدًا عند التصوير الميداني من الهاتف
-  const useMyLocation = () => {
-    if (!navigator.geolocation) {
-      alert('المتصفح لا يدعم تحديد الموقع الجغرافي');
+  // ===================================================================
+  // تحديد الموقع عبر Plus Code (مثال: "9V92+Q3V, El Oued" أو كود كامل)
+  // أسهل بكثير على الهاتف من كتابة الإحداثيات يدويًا
+  // ===================================================================
+  const geocodeLocality = async (locality) => {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(locality)}`,
+      { headers: { 'Accept-Language': 'ar' } }
+    );
+    const data = await res.json();
+    if (!data || data.length === 0) throw new Error('لم يتم العثور على المنطقة المذكورة');
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  };
+
+  const resolvePlusCode = async () => {
+    setPlusCodeError('');
+    const raw = plusCodeInput.trim();
+    if (!raw) return;
+
+    // فصل الكود عن اسم المنطقة إن وُجد فاصلة، مثل: "9V92+Q3V, El Oued"
+    const [codePartRaw, ...localityParts] = raw.split(',');
+    const codePart = codePartRaw.trim().toUpperCase();
+    const locality = localityParts.join(',').trim();
+
+    if (!olc.isValid(codePart)) {
+      setPlusCodeError('صيغة الكود غير صحيحة. تأكد من كتابته بشكل صحيح.');
       return;
     }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        applyCoords(latitude, longitude);
-        if (mapRef.current && markerRef.current) {
-          markerRef.current.setLatLng([latitude, longitude]);
-          mapRef.current.setView([latitude, longitude], 16);
+
+    setResolvingCode(true);
+    try {
+      let fullCode = codePart;
+
+      if (olc.isShort(codePart)) {
+        // الكود القصير يحتاج نقطة مرجعية قريبة (اسم المدينة/المنطقة أو مركز الخريطة الحالي)
+        let refLat, refLng;
+        if (locality) {
+          const loc = await geocodeLocality(locality);
+          refLat = loc.lat;
+          refLng = loc.lng;
+        } else if (mapRef.current) {
+          const center = mapRef.current.getCenter();
+          refLat = center.lat;
+          refLng = center.lng;
+        } else {
+          refLat = DEFAULT_CENTER.lat;
+          refLng = DEFAULT_CENTER.lng;
         }
-        setLocating(false);
-      },
-      () => {
-        alert('تعذر الحصول على الموقع. تأكد من تفعيل صلاحية الموقع.');
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+        fullCode = olc.recoverNearest(codePart, refLat, refLng);
+      }
+
+      const area = olc.decode(fullCode);
+      applyCoords(area.latitudeCenter, area.longitudeCenter);
+      if (mapRef.current && markerRef.current) {
+        markerRef.current.setLatLng([area.latitudeCenter, area.longitudeCenter]);
+        mapRef.current.setView([area.latitudeCenter, area.longitudeCenter], 17);
+      }
+    } catch (err) {
+      setPlusCodeError(err.message || 'تعذر تحديد الموقع من هذا الكود');
+    } finally {
+      setResolvingCode(false);
+    }
   };
 
   // --- دوال الصور ---
@@ -233,36 +277,100 @@ export default function AddPlaceForm() {
   };
 
   // --- دالة الحفظ وإرسال البيانات ---
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError('');
+    setSubmitSuccess(false);
+
+    if (!formData.name.trim() || !formData.main_category) {
+      setSubmitError('يرجى تعبئة اسم المعلم والتصنيف الرئيسي على الأقل.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // 1. رفع الصور إلى Storage (أمثلة وهمية هنا لتوضيح الفكرة)
-      // في التطبيق الحقيقي: استخدم supabase.storage.from('images').upload(...) لكل images[i].file
-      // مع الحفاظ على ترتيب المصفوفة الحالي (images) لأنه هو الترتيب الذي اختاره المستخدم
-      const imageUrlsArray = images.map((img, i) => `https://fake-link.com/image-${i}.jpg`);
+      // 1. رفع الصور إلى Supabase Storage (bucket: images)
+      const uploadedUrls = [];
+      for (let i = 0; i < images.length; i++) {
+        const { file } = images[i];
+        const ext = file.name.split('.').pop();
+        const path = `places/${Date.now()}-${i}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-      // 2. تجهيز البيانات للإرسال
+        const { error: uploadError } = await supabase.storage
+          .from('images')
+          .upload(path, file, { cacheControl: '3600', upsert: false });
+
+        if (uploadError) throw new Error(`فشل رفع الصورة رقم ${i + 1}: ${uploadError.message}`);
+
+        const { data: publicUrlData } = supabase.storage.from('images').getPublicUrl(path);
+        uploadedUrls.push(publicUrlData.publicUrl);
+      }
+
+      // 2. تجهيز بيانات المعلم (الصورة الأولى = الصورة الرئيسية في عمود image_url)
       const placeDataToInsert = {
-        ...formData,
+        name: formData.name,
+        main_category: formData.main_category,
+        sub_category: formData.sub_category || null,
+        description: formData.description || null,
+        address: formData.address || null,
+        district: formData.district || null,
+        municipality: formData.municipality || null,
         lat: formData.lat ? parseFloat(formData.lat) : null,
         lng: formData.lng ? parseFloat(formData.lng) : null,
-        image_url: JSON.stringify(imageUrlsArray), // تحويل مصفوفة الروابط إلى نص JSON
+        map_link: formData.map_link || null,
+        phone: formData.phone || null,
+        website: formData.website || null,
+        facebook: formData.facebook || null,
+        instagram: formData.instagram || null,
+        opening_hours: formData.opening_hours || null,
+        image_url: uploadedUrls[0] || null,
+        status: formData.status,
       };
 
-      console.log('البيانات الجاهزة:', placeDataToInsert);
+      // 3. إدراج المعلم في جدول places
+      const { data: insertedPlace, error: insertError } = await supabase
+        .from('places')
+        .insert([placeDataToInsert])
+        .select()
+        .single();
 
-      /*
-      // 3. الإرسال الفعلي لـ Supabase
-      const { error } = await supabase.from('places').insert([placeDataToInsert]);
-      if (error) throw error;
-      alert('تمت إضافة المعلم بنجاح!');
-      */
+      if (insertError) throw new Error(`فشل حفظ المعلم: ${insertError.message}`);
+
+      // 4. إدراج باقي الصور في جدول gallery (الصورة الأولى تُعتبر الغلاف is_cover)
+      if (uploadedUrls.length > 0) {
+        const galleryRows = uploadedUrls.map((url, idx) => ({
+          place_id: insertedPlace.id,
+          image_url: url,
+          is_cover: idx === 0,
+          sort_order: idx,
+        }));
+
+        const { error: galleryError } = await supabase.from('gallery').insert(galleryRows);
+        if (galleryError) {
+          // لا نوقف العملية بسبب هذا فقط، لكن نبلغ المستخدم
+          console.error('gallery insert error:', galleryError);
+          setSubmitError('تم حفظ المعلم، لكن حدث خطأ أثناء ربط بعض الصور بالمعرض.');
+        }
+      }
+
+      setSubmitSuccess(true);
+      // إعادة تصفير الفورم
+      setFormData({
+        name: '', main_category: '', sub_category: '', description: '',
+        address: '', district: '', municipality: '', lat: '', lng: '',
+        map_link: '', phone: '', website: '', facebook: '', instagram: '',
+        opening_hours: '', status: 'منشور',
+      });
+      setImages([]);
+      setPlusCodeInput('');
 
     } catch (error) {
       console.error('Error:', error);
-      alert('حدث خطأ أثناء الإضافة!');
+      setSubmitError(error.message || 'حدث خطأ غير متوقع أثناء الإضافة.');
     } finally {
       setIsSubmitting(false);
     }
@@ -348,22 +456,35 @@ export default function AddPlaceForm() {
 
         {/* --- خريطة تحديد الموقع بالضغط (Pin) --- */}
         <div className="flex flex-col gap-2 mt-2">
-          <div className="flex items-center justify-between">
-            <label>حدد الموقع على الخريطة (اضغط أو اسحب العلامة)</label>
+          <label>حدد الموقع على الخريطة (اضغط أو اسحب العلامة)</label>
+
+          {/* إدخال Plus Code — أسهل من كتابة الإحداثيات على الهاتف */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              value={plusCodeInput}
+              onChange={(e) => setPlusCodeInput(e.target.value)}
+              placeholder="مثال: 9V92+Q3V, El Oued"
+              className="flex-1 p-3 rounded bg-[#222] border border-gray-700 focus:border-green-500 outline-none"
+              dir="ltr"
+            />
             <button
               type="button"
-              onClick={useMyLocation}
-              disabled={locating}
-              className="text-sm bg-green-800 hover:bg-green-700 disabled:opacity-50 text-white px-3 py-1.5 rounded-md flex items-center gap-1.5"
+              onClick={resolvePlusCode}
+              disabled={resolvingCode || !plusCodeInput.trim()}
+              className="bg-green-800 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded-md whitespace-nowrap"
             >
-              {locating ? 'جاري التحديد...' : '📍 استخدم موقعي الحالي'}
+              {resolvingCode ? 'جاري التحديد...' : '📍 تحديد من الكود'}
             </button>
           </div>
+          {plusCodeError && <p className="text-red-400 text-xs">{plusCodeError}</p>}
+          <p className="text-gray-600 text-xs">انسخ الكود من خرائط قوقل (زر المشاركة يعطيك مثل "9V92+Q3V, El Oued") والصقه هنا مباشرة.</p>
+
           <div
             ref={mapContainerRef}
-            className="w-full h-[320px] rounded-lg border border-gray-700 overflow-hidden bg-[#222]"
+            className="w-full h-[320px] rounded-lg border border-gray-700 overflow-hidden bg-[#222] mt-1"
           />
-          <p className="text-gray-500 text-xs">اضغط في أي مكان بالخريطة لوضع العلامة، أو اسحبها لضبط الموقع بدقة — يعمل باللمس على الهاتف.</p>
+          <p className="text-gray-500 text-xs">أو اضغط في أي مكان بالخريطة لوضع العلامة، أو اسحبها لضبط الموقع بدقة — يعمل باللمس على الهاتف.</p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 mt-2">
@@ -377,125 +498,4 @@ export default function AddPlaceForm() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label>رابط خريطة قوقل (اختياري)</label>
-          <input type="url" name="map_link" value={formData.map_link} onChange={handleInputChange} className="p-3 rounded bg-[#222] border border-gray-700 focus:border-green-500 outline-none" dir="ltr" />
-        </div>
-      </fieldset>
-
-      {/* 3. معلومات الاتصال */}
-      <fieldset className="flex flex-col gap-4 border border-[#333] p-5 rounded-lg bg-[#1a1a1a]">
-        <legend className="text-lg font-semibold text-green-400 px-3">الروابط ومعلومات الاتصال</legend>
-
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex flex-col gap-1 w-full sm:w-1/2">
-            <label>رقم الهاتف</label>
-            <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className="p-3 rounded bg-[#222] border border-gray-700 focus:border-green-500 outline-none" dir="ltr" />
-          </div>
-          <div className="flex flex-col gap-1 w-full sm:w-1/2">
-            <label>مواقيت العمل</label>
-            <input type="text" name="opening_hours" value={formData.opening_hours} onChange={handleInputChange} className="p-3 rounded bg-[#222] border border-gray-700 focus:border-green-500 outline-none" placeholder="مثال: 08:00 صباحاً - 04:00 مساءً" />
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-4 mt-2">
-          <div className="flex flex-col gap-1 w-full sm:w-1/3">
-            <label>رابط الفيسبوك</label>
-            <input type="url" name="facebook" value={formData.facebook} onChange={handleInputChange} className="p-3 rounded bg-[#222] border border-gray-700 focus:border-green-500 outline-none" dir="ltr" />
-          </div>
-          <div className="flex flex-col gap-1 w-full sm:w-1/3">
-            <label>رابط الانستغرام</label>
-            <input type="url" name="instagram" value={formData.instagram} onChange={handleInputChange} className="p-3 rounded bg-[#222] border border-gray-700 focus:border-green-500 outline-none" dir="ltr" />
-          </div>
-          <div className="flex flex-col gap-1 w-full sm:w-1/3">
-            <label>الموقع الإلكتروني</label>
-            <input type="url" name="website" value={formData.website} onChange={handleInputChange} className="p-3 rounded bg-[#222] border border-gray-700 focus:border-green-500 outline-none" dir="ltr" />
-          </div>
-        </div>
-      </fieldset>
-
-      {/* 4. الصور */}
-      <fieldset className="flex flex-col gap-4 border border-[#333] p-5 rounded-lg bg-[#1a1a1a]">
-        <legend className="text-lg font-semibold text-green-400 px-3">صور المعلم</legend>
-
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* رفع من الملفات (سطح المكتب أو معرض الهاتف) */}
-          <div
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
-            className="relative flex-1 p-6 border-2 border-dashed border-green-600/50 rounded-xl text-center hover:bg-[#222] transition bg-[#151515] flex flex-col items-center justify-center min-h-[130px]"
-          >
-            <svg className="w-10 h-10 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-            <p className="text-gray-400 font-medium">اسحب وأفلت الصور هنا</p>
-            <p className="text-gray-600 text-sm mt-1">أو اضغط لاختيار صور من الجهاز</p>
-            <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-          </div>
-
-          {/* تصوير مباشر من كاميرا الهاتف */}
-          <div className="relative flex-1 p-6 border-2 border-dashed border-blue-600/50 rounded-xl text-center hover:bg-[#222] transition bg-[#151515] flex flex-col items-center justify-center min-h-[130px]">
-            <svg className="w-10 h-10 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><circle cx="12" cy="13" r="3" stroke="currentColor" strokeWidth="2"></circle></svg>
-            <p className="text-gray-400 font-medium">التقط صورة مباشرة</p>
-            <p className="text-gray-600 text-sm mt-1">يفتح كاميرا الهاتف مباشرة</p>
-            <input type="file" accept="image/*" capture="environment" onChange={handleCameraCapture} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-          </div>
-        </div>
-
-        {images.length > 0 && (
-          <div>
-            <p className="text-gray-500 text-xs mb-2">اسحب الصور لإعادة الترتيب (سطح المكتب) أو استعمل الأسهم (الهاتف). أول صورة ستكون الصورة الرئيسية.</p>
-            <div className="flex gap-4 overflow-x-auto py-2 scrollbar-thin">
-              {images.map((img, idx) => (
-                <div
-                  key={img.id}
-                  draggable
-                  onDragStart={() => handleImageDragStart(idx)}
-                  onDragOver={handleImageDragOver}
-                  onDrop={() => handleImageDropReorder(idx)}
-                  className="relative min-w-[130px] h-[130px] rounded-lg border border-gray-700 overflow-hidden shadow-lg group bg-[#222]"
-                >
-                  <img src={img.preview} alt={`preview-${idx}`} className="w-full h-full object-cover" />
-
-                  {idx === 0 && (
-                    <span className="absolute top-2 left-2 bg-green-700 text-white text-[10px] px-2 py-0.5 rounded-full">رئيسية</span>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => removeImage(img.id)}
-                    className="absolute top-2 right-2 bg-red-600 hover:bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm shadow-md"
-                  >✕</button>
-
-                  <div className="absolute bottom-0 inset-x-0 flex justify-between bg-black/60">
-                    <button
-                      type="button"
-                      onClick={() => moveImage(idx, -1)}
-                      disabled={idx === 0}
-                      className="flex-1 text-white text-sm py-1.5 disabled:opacity-30 hover:bg-white/10"
-                    >➜</button>
-                    <button
-                      type="button"
-                      onClick={() => moveImage(idx, 1)}
-                      disabled={idx === images.length - 1}
-                      className="flex-1 text-white text-sm py-1.5 disabled:opacity-30 hover:bg-white/10 border-r border-white/20"
-                    >⟵</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </fieldset>
-
-      {/* زر الحفظ */}
-      <div className="flex justify-end mt-4">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className={`font-bold py-4 px-12 rounded-lg shadow-lg transition-colors w-full sm:w-auto text-lg ${isSubmitting ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-green-700 hover:bg-green-600 text-white'}`}
-        >
-          {isSubmitting ? 'جاري الحفظ...' : 'حفظ المعلم في قاعدة البيانات'}
-        </button>
-      </div>
-    </form>
-  );
-}
+        <div className="flex f
