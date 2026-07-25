@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../../lib/supabase/client';
-// استدعاء مكون إضافة المعلم
 import AddPlaceForm from '@/components/map/admin/AddPlaceForm'; 
 
 /* ---------------------------------------------------------
-   ثوابت عامة وأيقونات (VIP Design)
+   ثوابت عامة وأيقونات
    --------------------------------------------------------- */
 const CURRENT_USER = { name: 'نجم يحياوي', role: 'مدير النظام' };
 
@@ -59,31 +58,25 @@ export default function DashboardPage() {
 
   async function fetchAllData() {
     setIsLoading(true);
-    
-    // جلب المعالم
     const { data: pData, error: pErr } = await supabase.from('places').select('*').order('id', { ascending: false });
     if (!pErr) { setPlaces(pData || []); setDbOnline(true); } else { setDbOnline(false); }
 
-    // جلب المشرفين
     const { data: aData } = await supabase.from('admins').select('*');
     if (aData) setAdmins(aData);
 
-    // جلب التراث
     const { data: hData } = await supabase.from('heritage').select('*').order('id', { ascending: false });
     if (hData) setHeritageItems(hData);
 
-    // جلب الذكريات
     const { data: mData } = await supabase.from('memories').select('*').order('id', { ascending: false });
     if (mData) setMemories(mData);
 
-    // جلب الآراء
     const { data: fData } = await supabase.from('feedbacks').select('*').order('id', { ascending: false });
     if (fData) setFeedbacks(fData);
 
     setIsLoading(false);
   }
 
-  /* ---------- دوال النظام ---------- */
+  /* ---------- دوال مساعدة ---------- */
   function showToast(msg) {
     const id = Date.now();
     setToasts((t) => [...t, { id, msg }]);
@@ -103,6 +96,7 @@ export default function DashboardPage() {
     showToast('تم تحديث حالة النظام إلى: ' + SITE_STATUS_MAP[status].text);
   }
 
+  /* ---------- العمليات على البيانات ---------- */
   async function togglePlaceStatus(place) {
     const newStatus = place.status === 'منشور' ? 'مسودة' : 'منشور';
     const { error } = await supabase.from('places').update({ status: newStatus }).eq('id', place.id);
@@ -152,13 +146,12 @@ export default function DashboardPage() {
     } else showToast('إجراء غير مسموح أو خطأ بالنظام');
   }
 
-  // حساب الإحصائيات المعلقة
   const pendingMemoriesCount = memories.filter(m => !m.approved).length;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#334155] font-sans flex selection:bg-[#D4AF37] selection:text-white" dir="rtl">
       
-      {/* --- التنبيهات المنبثقة الاحترافية --- */}
+      {/* --- التنبيهات المنبثقة --- */}
       <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-3">
         {toasts.map((t) => (
           <div key={t.id} className="bg-white text-[#1E293B] px-6 py-4 rounded-xl shadow-2xl border-l-4 border-[#D4AF37] text-sm font-bold animate-fade-in flex items-center gap-3">
@@ -168,7 +161,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* ===================== الشريط الجانبي (Sidebar) ===================== */}
+      {/* ===================== الشريط الجانبي ===================== */}
       <aside className={`${mobileSidebarOpen ? 'block fixed inset-y-0 right-0 z-40' : 'hidden md:flex'} w-72 bg-white flex-col py-6 px-4 border-l border-[#E2E8F0] shadow-sm transition-transform overflow-y-auto`}>
         
         <div className="flex items-center gap-4 px-3 mb-10">
@@ -238,7 +231,7 @@ export default function DashboardPage() {
       {/* ===================== المحتوى الرئيسي ===================== */}
       <div className="flex-1 min-w-0 flex flex-col h-screen">
 
-        {/* ---------- الرأس العلوي (Header) مؤسساتي ---------- */}
+        {/* ---------- الرأس العلوي ---------- */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-[#E2E8F0] px-8 py-4 flex items-center gap-4 sticky top-0 z-20">
           <button onClick={() => setMobileSidebarOpen(true)} className="p-2 text-[#64748B] bg-[#F1F5F9] rounded-lg md:hidden">☰</button>
           
@@ -276,10 +269,10 @@ export default function DashboardPage() {
         {/* ---------- محتوى الصفحات ---------- */}
         <main className="flex-1 p-6 sm:p-10 overflow-y-auto">
           
-          {/* 1. المركز الرئيسي (Overview) */}
+          {/* 1. المركز الإحصائي */}
           {view === 'overview' && (
             <div className="space-y-8 max-w-7xl mx-auto animate-fade-in">
-              <div className="bg-white p-8 rounded-2xl border border-[#E2E8F0] shadow-sm flex justify-between items-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-blend-overlay">
+              <div className="bg-white p-8 rounded-2xl border border-[#E2E8F0] shadow-sm flex justify-between items-center">
                 <div>
                   <h1 className="text-2xl font-black text-[#0F172A]">المركز الإحصائي العام</h1>
                   <p className="text-[#64748B] text-sm mt-2 font-medium">ملخص فوري لبيانات منصة "سوف 360" الذكية.</p>
@@ -342,4 +335,7 @@ export default function DashboardPage() {
           {/* 4. السجل التراثي */}
           {view === 'heritage' && (
             <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
-              <div className="flex justify-between items-center bg-white p-6 rounded>
+              <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-[#E2E8F0] shadow-sm">
+                <div>
+                  <h2 className="text-xl font-black text-[#0F172A]">التوثيق التراثي</h2>
+                  <p className="text-sm text-[#64748B] mt-1">إدارة عناصر عادات وتقاليد الوادي</p>
