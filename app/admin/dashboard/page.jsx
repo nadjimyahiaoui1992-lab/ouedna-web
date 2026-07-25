@@ -44,6 +44,7 @@ const SITE_STATUS_MAP = {
 
 const EMPTY_PLACE_FORM = { name: '', category: 'طبيعي', status: 'منشور', image: '', details: '' };
 const EMPTY_ADMIN_FORM = { name: '', email: '', role: 'مشرف', active: true };
+const EMPTY_HERITAGE_FORM = { title: '', image: '', text: '' };
 
 export default function DashboardPage() {
   /* ---------- تنقّل ---------- */
@@ -72,6 +73,11 @@ export default function DashboardPage() {
   /* ---------- نموذج إضافة مشرف ---------- */
   const [showAdminForm, setShowAdminForm] = useState(false);
   const [adminForm, setAdminForm] = useState(EMPTY_ADMIN_FORM);
+
+  /* ---------- نموذج إضافة/تعديل عنصر تراثي ---------- */
+  const [showHeritageForm, setShowHeritageForm] = useState(false);
+  const [editingHeritageId, setEditingHeritageId] = useState(null);
+  const [heritageForm, setHeritageForm] = useState(EMPTY_HERITAGE_FORM);
 
   /* ---------- تأكيد الحذف + Toasts ---------- */
   const [confirmTarget, setConfirmTarget] = useState(null);
@@ -229,6 +235,53 @@ export default function DashboardPage() {
     } else {
       showToast('حدث خطأ أثناء إضافة المشرف');
     }
+  }
+
+  /* ---------- العناصر التراثية: إضافة / تعديل ---------- */
+  function openAddHeritage() {
+    setEditingHeritageId(null);
+    setHeritageForm(EMPTY_HERITAGE_FORM);
+    setShowHeritageForm(true);
+  }
+
+  function openEditHeritage(item) {
+    setEditingHeritageId(item.id);
+    setHeritageForm({ title: item.title, image: item.image, text: item.text });
+    setShowHeritageForm(true);
+  }
+
+  function closeHeritageForm() {
+    setShowHeritageForm(false);
+    setEditingHeritageId(null);
+    setHeritageForm(EMPTY_HERITAGE_FORM);
+  }
+
+  async function submitHeritageForm(e) {
+    e.preventDefault();
+    const dataToSave = {
+      title: heritageForm.title.trim(),
+      image: heritageForm.image.trim() || 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400',
+      text: heritageForm.text.trim(),
+    };
+
+    if (editingHeritageId) {
+      const { error } = await supabase.from('heritage').update(dataToSave).eq('id', editingHeritageId);
+      if (!error) {
+        setHeritageItems((prev) => prev.map((h) => (h.id === editingHeritageId ? { ...h, ...dataToSave } : h)));
+        showToast('تم تحديث العنصر التراثي بنجاح');
+      } else {
+        showToast('حدث خطأ أثناء التحديث');
+      }
+    } else {
+      const { data: newItem, error } = await supabase.from('heritage').insert([dataToSave]).select();
+      if (!error && newItem) {
+        setHeritageItems((prev) => [...prev, newItem[0]]);
+        showToast('تمت إضافة العنصر التراثي بنجاح');
+      } else {
+        showToast('حدث خطأ أثناء الإضافة');
+      }
+    }
+    closeHeritageForm();
   }
 
   async function approveMemory(id) {
@@ -638,8 +691,9 @@ export default function DashboardPage() {
               <section className="space-y-5">
                 <div className="flex items-center justify-between">
                   <h1 className="text-xl font-extrabold">عادات وتقاليد ولاية الوادي</h1>
-                  <button onClick={() => showToast('نموذج الإضافة سيتم تفعيله لاحقاً')} className={`${styles.btn} ${styles.btnOasis}`}>＋ إضافة عنصر تراثي</button>
+                  <button onClick={openAddHeritage} className={`${styles.btn} ${styles.btnOasis}`}>＋ إضافة عنصر تراثي</button>
                 </div>
+
                 {heritageItems.length ? (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {heritageItems.map((h) => (
@@ -649,7 +703,7 @@ export default function DashboardPage() {
                           <p className="font-bold text-sm">{h.title}</p>
                           <p className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>{h.text}</p>
                           <div className="flex gap-2 mt-3">
-                            <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`} title="تعديل"><IconEdit /></button>
+                            <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`} title="تعديل" onClick={() => openEditHeritage(h)}><IconEdit /></button>
                             <button className={`${styles.btn} ${styles.btnClay} ${styles.btnIcon}`} title="حذف" onClick={() => askDelete('heritage', h.id)}><IconTrash /></button>
                           </div>
                         </div>
@@ -657,6 +711,36 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 ) : <EmptyState msg="لم تتم إضافة أي عنصر تراثي بعد" />}
+
+                {showHeritageForm && (
+                  <div className={`${styles.panel} p-5 sm:p-6`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="font-extrabold">{editingHeritageId ? 'تعديل العنصر التراثي' : 'إضافة عنصر تراثي جديد'}</h2>
+                      <button onClick={closeHeritageForm} className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`}>✕</button>
+                    </div>
+                    <form onSubmit={submitHeritageForm} className="grid sm:grid-cols-2 gap-4">
+                      <div className={`${styles.field} sm:col-span-2`}>
+                        <label>العنوان</label>
+                        <input type="text" required placeholder="مثال: الملحفة الوادية"
+                          value={heritageForm.title} onChange={(e) => setHeritageForm((f) => ({ ...f, title: e.target.value }))} />
+                      </div>
+                      <div className={`${styles.field} sm:col-span-2`}>
+                        <label>صورة (رابط)</label>
+                        <input type="text" placeholder="https://..."
+                          value={heritageForm.image} onChange={(e) => setHeritageForm((f) => ({ ...f, image: e.target.value }))} />
+                      </div>
+                      <div className={`${styles.field} sm:col-span-2`}>
+                        <label>الوصف</label>
+                        <textarea rows={4} placeholder="وصف مختصر عن العادة أو التقليد..."
+                          value={heritageForm.text} onChange={(e) => setHeritageForm((f) => ({ ...f, text: e.target.value }))} />
+                      </div>
+                      <div className="sm:col-span-2 flex items-center gap-3 pt-2">
+                        <button type="submit" className={`${styles.btn} ${styles.btnOasis}`}>حفظ</button>
+                        <button type="button" onClick={closeHeritageForm} className={`${styles.btn} ${styles.btnGhost}`}>إلغاء</button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </section>
             )}
 
