@@ -33,7 +33,7 @@ const IconChevron = ({ open }) => (
 /* ---------------------------------------------------------
    ثوابت عامة
    --------------------------------------------------------- */
-const SITE_VISITS = 18420; // ملاحظة: هذا الرقم ثابت حالياً ويحتاج لنظام تتبع منفصل ليكون حقيقياً
+const SITE_VISITS = 18420;
 const CURRENT_USER = { name: 'نجم يحياوي', role: 'مدير عام' };
 
 const SITE_STATUS_MAP = {
@@ -184,7 +184,6 @@ export default function DashboardPage() {
     closePlaceForm();
   }
 
-  /* ---------- الذاكرة: نشر ---------- */
   async function approveMemory(id) {
     const { error } = await supabase.from('memories').update({ approved: true }).eq('id', id);
     if (!error) {
@@ -195,7 +194,6 @@ export default function DashboardPage() {
     }
   }
 
-  /* ---------- الحذف ---------- */
   function askDelete(type, id) {
     setConfirmTarget({ type, id });
   }
@@ -400,4 +398,249 @@ export default function DashboardPage() {
               </section>
             )}
 
-            {/
+            {/* ======================= المشرفون ======================= */}
+            {view === 'admins' && (
+              <section className="space-y-4">
+                <h1 className="text-xl font-extrabold">إدارة المشرفين</h1>
+                <div className={`${styles.panel} overflow-hidden`}>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-right" style={{ background: 'var(--sand-2)', color: 'var(--ink-soft)' }}>
+                        <th className="px-4 py-3 font-bold">الاسم</th>
+                        <th className="px-4 py-3 font-bold">البريد الإلكتروني</th>
+                        <th className="px-4 py-3 font-bold">الدور</th>
+                        <th className="px-4 py-3 font-bold">الحالة</th>
+                        <th className="px-4 py-3 font-bold">إجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {admins.map((a) => (
+                        <tr key={a.id} className={`${styles.rowHover} border-t`} style={{ borderColor: 'var(--line)' }}>
+                          <td className="px-4 py-3 font-semibold">{a.name}</td>
+                          <td className="px-4 py-3" style={{ color: 'var(--ink-soft)' }}>{a.email}</td>
+                          <td className="px-4 py-3"><span className={styles.catChip}>{a.role}</span></td>
+                          <td className="px-4 py-3">
+                            <span className={`${styles.badge} ${a.active ? styles.badgeOnline : styles.badgeOffline}`}>
+                              <span className={styles.badgeDot} />{a.active ? 'نشط' : 'غير نشط'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`} title="تعديل"><IconEdit /></button>
+                              <button className={`${styles.btn} ${styles.btnClay} ${styles.btnIcon}`} title="حذف" onClick={() => askDelete('admin', a.id)}><IconTrash /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
+            {/* ======================= المعالم ======================= */}
+            {view === 'places' && (
+              <section className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <h1 className="text-xl font-extrabold">إدارة المعالم</h1>
+                  <button onClick={openAddPlace} className={`${styles.btn} ${styles.btnOasis}`}>＋ إضافة معلم جديد</button>
+                </div>
+
+                <div className={`${styles.panel} overflow-hidden`}>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-right" style={{ background: 'var(--sand-2)', color: 'var(--ink-soft)' }}>
+                        <th className="px-4 py-3 font-bold">المعلم</th>
+                        <th className="px-4 py-3 font-bold">التصنيف</th>
+                        <th className="px-4 py-3 font-bold">الحالة</th>
+                        <th className="px-4 py-3 font-bold">إجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {places.map((p) => (
+                        <tr key={p.id} className={`${styles.rowHover} border-t`} style={{ borderColor: 'var(--line)' }}>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <img src={p.image} className="w-10 h-10 rounded-lg object-cover shrink-0" alt="" />
+                              <span className="font-semibold">{p.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3"><span className={styles.catChip}>{p.category}</span></td>
+                          <td className="px-4 py-3">
+                            <span className={`${styles.badge} ${p.status === 'منشور' ? styles.badgeOnline : styles.badgeMaint}`}>
+                              <span className={styles.badgeDot} />{p.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`} title="تعديل" onClick={() => openEditPlace(p)}><IconEdit /></button>
+                              <button className={`${styles.btn} ${styles.btnClay} ${styles.btnIcon}`} title="حذف" onClick={() => askDelete('place', p.id)}><IconTrash /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {showPlaceForm && (
+                  <div className={`${styles.panel} p-5 sm:p-6`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="font-extrabold">{editingPlaceId ? 'تعديل المعلم' : 'إضافة معلم جديد'}</h2>
+                      <button onClick={closePlaceForm} className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`}>✕</button>
+                    </div>
+                    <form onSubmit={submitPlaceForm} className="grid sm:grid-cols-2 gap-4">
+                      <div className={`${styles.field} sm:col-span-2`}>
+                        <label>اسم المعلم</label>
+                        <input type="text" required placeholder="مثال: بحيرة أم الطيور"
+                          value={placeForm.name} onChange={(e) => setPlaceForm((f) => ({ ...f, name: e.target.value }))} />
+                      </div>
+                      <div className={styles.field}>
+                        <label>التصنيف</label>
+                        <select value={placeForm.category} onChange={(e) => setPlaceForm((f) => ({ ...f, category: e.target.value }))}>
+                          <option value="طبيعي">معلم طبيعي</option>
+                          <option value="تراثي">معلم تراثي</option>
+                          <option value="ديني">معلم ديني</option>
+                          <option value="ترفيهي">ترفيهي</option>
+                        </select>
+                      </div>
+                      <div className={styles.field}>
+                        <label>الحالة</label>
+                        <select value={placeForm.status} onChange={(e) => setPlaceForm((f) => ({ ...f, status: e.target.value }))}>
+                          <option value="منشور">منشور</option>
+                          <option value="مسودة">مسودة</option>
+                        </select>
+                      </div>
+                      <div className={`${styles.field} sm:col-span-2`}>
+                        <label>صورة المعلم (رابط أو رفع لاحقاً عبر Supabase Storage)</label>
+                        <input type="text" placeholder="https://..."
+                          value={placeForm.image} onChange={(e) => setPlaceForm((f) => ({ ...f, image: e.target.value }))} />
+                      </div>
+                      <div className={`${styles.field} sm:col-span-2`}>
+                        <label>التفاصيل</label>
+                        <textarea rows={4} placeholder="وصف مختصر عن المعلم..."
+                          value={placeForm.details} onChange={(e) => setPlaceForm((f) => ({ ...f, details: e.target.value }))} />
+                      </div>
+                      <div className="sm:col-span-2 flex items-center gap-3 pt-2">
+                        <button type="submit" className={`${styles.btn} ${styles.btnOasis}`}>حفظ المعلم</button>
+                        <button type="button" onClick={closePlaceForm} className={`${styles.btn} ${styles.btnGhost}`}>إلغاء</button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ======================= التراث ======================= */}
+            {view === 'heritage' && (
+              <section className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <h1 className="text-xl font-extrabold">عادات وتقاليد ولاية الوادي</h1>
+                  <button onClick={() => showToast('نموذج الإضافة سيتم تفعيله لاحقاً')} className={`${styles.btn} ${styles.btnOasis}`}>＋ إضافة عنصر تراثي</button>
+                </div>
+                {heritageItems.length ? (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {heritageItems.map((h) => (
+                      <div key={h.id} className={styles.placeCard}>
+                        <img src={h.image} alt={h.title} loading="lazy" />
+                        <div className="p-3">
+                          <p className="font-bold text-sm">{h.title}</p>
+                          <p className="text-xs mt-1" style={{ color: 'var(--ink-soft)' }}>{h.text}</p>
+                          <div className="flex gap-2 mt-3">
+                            <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`} title="تعديل"><IconEdit /></button>
+                            <button className={`${styles.btn} ${styles.btnClay} ${styles.btnIcon}`} title="حذف" onClick={() => askDelete('heritage', h.id)}><IconTrash /></button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : <EmptyState msg="لم تتم إضافة أي عنصر تراثي بعد" />}
+              </section>
+            )}
+
+            {/* ======================= الذكريات ======================= */}
+            {view === 'memories' && (
+              <section className="space-y-5">
+                <h1 className="text-xl font-extrabold">ذكرى في ولاية الوادي — مشاركات الزوار</h1>
+                {memories.length ? (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {memories.map((m) => (
+                      <div key={m.id} className={styles.placeCard}>
+                        <img src={m.image} alt="" loading="lazy" />
+                        <div className="p-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="font-bold text-sm">{m.name}</p>
+                            <span className={`${styles.badge} ${m.approved ? styles.badgeOnline : styles.badgeMaint}`}>
+                              <span className={styles.badgeDot} />{m.approved ? 'منشورة' : 'قيد المراجعة'}
+                            </span>
+                          </div>
+                          <p className="text-xs" style={{ color: 'var(--ink-soft)' }}>{m.text}</p>
+                          <div className="flex gap-2 mt-3">
+                            {!m.approved && (
+                              <button className={`${styles.btn} ${styles.btnOasis} ${styles.btnIcon}`} title="نشر" onClick={() => approveMemory(m.id)}><IconCheck /></button>
+                            )}
+                            <button className={`${styles.btn} ${styles.btnClay} ${styles.btnIcon}`} title="حذف" onClick={() => askDelete('memory', m.id)}><IconTrash /></button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : <EmptyState msg="لا توجد مشاركات من الزوار بعد" />}
+              </section>
+            )}
+
+            {/* ======================= الآراء والاقتراحات ======================= */}
+            {view === 'feedback' && (
+              <section className="space-y-4">
+                <h1 className="text-xl font-extrabold">آراء واقتراحات الزوار</h1>
+                {feedbacks.length ? (
+                  <div className="space-y-3">
+                    {feedbacks.map((f) => (
+                      <div key={f.id} className={`${styles.panel} p-4 flex items-start justify-between gap-4`}>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-sm">{f.name}</p>
+                            <span className="text-xs" style={{ color: 'var(--ink-soft)' }}>{f.date}</span>
+                          </div>
+                          <p className="text-sm mt-1" style={{ color: 'var(--ink-soft)' }}>{f.message}</p>
+                        </div>
+                        <button className={`${styles.btn} ${styles.btnClay} ${styles.btnIcon} shrink-0`} title="حذف" onClick={() => askDelete('feedback', f.id)}><IconTrash /></button>
+                      </div>
+                    ))}
+                  </div>
+                ) : <EmptyState msg="لا توجد آراء أو اقتراحات بعد" />}
+              </section>
+            )}
+
+          </main>
+        </div>
+      </div>
+
+      {/* ===================== نافذة تأكيد الحذف ===================== */}
+      {confirmTarget && (
+        <div className={`${styles.modalBackdrop} fixed inset-0 z-50 flex items-center justify-center px-4`}>
+          <div className={`${styles.panel} w-full max-w-sm p-6 text-center`}>
+            <div className="w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--clay-tint)' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="#B85C34" strokeWidth="2" strokeLinecap="round" /><circle cx="12" cy="12" r="9" stroke="#B85C34" strokeWidth="1.8" /></svg>
+            </div>
+            <h3 className="font-extrabold text-lg mb-1">تأكيد الحذف</h3>
+            <p className="text-sm mb-5" style={{ color: 'var(--ink-soft)' }}>هل أنت متأكد من حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmTarget(null)} className={`${styles.btn} ${styles.btnGhost} flex-1`}>إلغاء</button>
+              <button onClick={confirmDelete} className={`${styles.btn} ${styles.btnClay} flex-1`}>حذف نهائياً</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== Toasts ===================== */}
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 space-y-2">
+        {toasts.map((t) => <div key={t.id} className={styles.toast}>{t.msg}</div>)}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ msg }) {
+  return <div className="text-center py-10 text-sm font-semibold" style={{ color: 'var(--ink-soft)' }}>{msg}</div>;
+}
