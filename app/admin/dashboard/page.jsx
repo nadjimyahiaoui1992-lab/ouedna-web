@@ -342,4 +342,4 @@ export default function DashboardPage() {
           {/* 4. السجل التراثي */}
           {view === 'heritage' && (
             <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
-              <div className="flex justify-between items-center bg-white p-6 rounded
+              <div className="flex justify-between items-center bg-white p-6 rounded>
