@@ -43,6 +43,7 @@ const SITE_STATUS_MAP = {
 };
 
 const EMPTY_PLACE_FORM = { name: '', category: 'طبيعي', status: 'منشور', image: '', details: '' };
+const EMPTY_ADMIN_FORM = { name: '', email: '', role: 'مشرف', active: true };
 
 export default function DashboardPage() {
   /* ---------- تنقّل ---------- */
@@ -67,6 +68,10 @@ export default function DashboardPage() {
   const [showPlaceForm, setShowPlaceForm] = useState(false);
   const [editingPlaceId, setEditingPlaceId] = useState(null);
   const [placeForm, setPlaceForm] = useState(EMPTY_PLACE_FORM);
+
+  /* ---------- نموذج إضافة مشرف ---------- */
+  const [showAdminForm, setShowAdminForm] = useState(false);
+  const [adminForm, setAdminForm] = useState(EMPTY_ADMIN_FORM);
 
   /* ---------- تأكيد الحذف + Toasts ---------- */
   const [confirmTarget, setConfirmTarget] = useState(null);
@@ -136,6 +141,7 @@ export default function DashboardPage() {
     showToast('تم تحديث حالة الموقع إلى: ' + SITE_STATUS_MAP[status].text);
   }
 
+  /* ---------- المعالم: إضافة / تعديل ---------- */
   function openAddPlace() {
     setEditingPlaceId(null);
     setPlaceForm(EMPTY_PLACE_FORM);
@@ -182,6 +188,47 @@ export default function DashboardPage() {
       }
     }
     closePlaceForm();
+  }
+
+  /* تبديل سريع لحالة المعلم (منشور / مسودة) بكليك واحدة */
+  async function togglePlaceStatus(place) {
+    const newStatus = place.status === 'منشور' ? 'مسودة' : 'منشور';
+    const { error } = await supabase.from('places').update({ status: newStatus }).eq('id', place.id);
+    if (!error) {
+      setPlaces((prev) => prev.map((p) => (p.id === place.id ? { ...p, status: newStatus } : p)));
+      showToast(newStatus === 'منشور' ? 'تم نشر المعلم' : 'تم إلغاء نشر المعلم');
+    } else {
+      showToast('حدث خطأ أثناء تحديث الحالة');
+    }
+  }
+
+  /* ---------- المشرفون: إضافة ---------- */
+  function openAddAdmin() {
+    setAdminForm(EMPTY_ADMIN_FORM);
+    setShowAdminForm(true);
+  }
+
+  function closeAdminForm() {
+    setShowAdminForm(false);
+    setAdminForm(EMPTY_ADMIN_FORM);
+  }
+
+  async function submitAdminForm(e) {
+    e.preventDefault();
+    const dataToSave = {
+      name: adminForm.name.trim(),
+      email: adminForm.email.trim(),
+      role: adminForm.role,
+      active: adminForm.active,
+    };
+    const { data: newAdmin, error } = await supabase.from('admins').insert([dataToSave]).select();
+    if (!error && newAdmin) {
+      setAdmins((prev) => [...prev, newAdmin[0]]);
+      showToast('تمت إضافة المشرف بنجاح');
+      closeAdminForm();
+    } else {
+      showToast('حدث خطأ أثناء إضافة المشرف');
+    }
   }
 
   async function approveMemory(id) {
@@ -401,40 +448,87 @@ export default function DashboardPage() {
             {/* ======================= المشرفون ======================= */}
             {view === 'admins' && (
               <section className="space-y-4">
-                <h1 className="text-xl font-extrabold">إدارة المشرفين</h1>
-                <div className={`${styles.panel} overflow-hidden`}>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-right" style={{ background: 'var(--sand-2)', color: 'var(--ink-soft)' }}>
-                        <th className="px-4 py-3 font-bold">الاسم</th>
-                        <th className="px-4 py-3 font-bold">البريد الإلكتروني</th>
-                        <th className="px-4 py-3 font-bold">الدور</th>
-                        <th className="px-4 py-3 font-bold">الحالة</th>
-                        <th className="px-4 py-3 font-bold">إجراءات</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {admins.map((a) => (
-                        <tr key={a.id} className={`${styles.rowHover} border-t`} style={{ borderColor: 'var(--line)' }}>
-                          <td className="px-4 py-3 font-semibold">{a.name}</td>
-                          <td className="px-4 py-3" style={{ color: 'var(--ink-soft)' }}>{a.email}</td>
-                          <td className="px-4 py-3"><span className={styles.catChip}>{a.role}</span></td>
-                          <td className="px-4 py-3">
-                            <span className={`${styles.badge} ${a.active ? styles.badgeOnline : styles.badgeOffline}`}>
-                              <span className={styles.badgeDot} />{a.active ? 'نشط' : 'غير نشط'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`} title="تعديل"><IconEdit /></button>
-                              <button className={`${styles.btn} ${styles.btnClay} ${styles.btnIcon}`} title="حذف" onClick={() => askDelete('admin', a.id)}><IconTrash /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="flex items-center justify-between">
+                  <h1 className="text-xl font-extrabold">إدارة المشرفين</h1>
+                  <button onClick={openAddAdmin} className={`${styles.btn} ${styles.btnOasis}`}>＋ إضافة مشرف جديد</button>
                 </div>
+
+                <div className={`${styles.panel} overflow-hidden`}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-right" style={{ background: 'var(--sand-2)', color: 'var(--ink-soft)' }}>
+                          <th className="px-4 py-3 font-bold">الاسم</th>
+                          <th className="px-4 py-3 font-bold">البريد الإلكتروني</th>
+                          <th className="px-4 py-3 font-bold">الدور</th>
+                          <th className="px-4 py-3 font-bold">الحالة</th>
+                          <th className="px-4 py-3 font-bold">إجراءات</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {admins.map((a) => (
+                          <tr key={a.id} className={`${styles.rowHover} border-t`} style={{ borderColor: 'var(--line)' }}>
+                            <td className="px-4 py-3 font-semibold">{a.name}</td>
+                            <td className="px-4 py-3" style={{ color: 'var(--ink-soft)' }}>{a.email}</td>
+                            <td className="px-4 py-3"><span className={styles.catChip}>{a.role}</span></td>
+                            <td className="px-4 py-3">
+                              <span className={`${styles.badge} ${a.active ? styles.badgeOnline : styles.badgeOffline}`}>
+                                <span className={styles.badgeDot} />{a.active ? 'نشط' : 'غير نشط'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`} title="تعديل"><IconEdit /></button>
+                                <button className={`${styles.btn} ${styles.btnClay} ${styles.btnIcon}`} title="حذف" onClick={() => askDelete('admin', a.id)}><IconTrash /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {!admins.length && <EmptyState msg="لا يوجد مشرفون بعد" />}
+                </div>
+
+                {showAdminForm && (
+                  <div className={`${styles.panel} p-5 sm:p-6`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="font-extrabold">إضافة مشرف جديد</h2>
+                      <button onClick={closeAdminForm} className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`}>✕</button>
+                    </div>
+                    <form onSubmit={submitAdminForm} className="grid sm:grid-cols-2 gap-4">
+                      <div className={styles.field}>
+                        <label>الاسم الكامل</label>
+                        <input type="text" required placeholder="مثال: أحمد بلقاسم"
+                          value={adminForm.name} onChange={(e) => setAdminForm((f) => ({ ...f, name: e.target.value }))} />
+                      </div>
+                      <div className={styles.field}>
+                        <label>البريد الإلكتروني</label>
+                        <input type="email" required placeholder="admin@example.com"
+                          value={adminForm.email} onChange={(e) => setAdminForm((f) => ({ ...f, email: e.target.value }))} />
+                      </div>
+                      <div className={styles.field}>
+                        <label>الدور</label>
+                        <select value={adminForm.role} onChange={(e) => setAdminForm((f) => ({ ...f, role: e.target.value }))}>
+                          <option value="مدير عام">مدير عام</option>
+                          <option value="مشرف">مشرف</option>
+                          <option value="محرر">محرر</option>
+                        </select>
+                      </div>
+                      <div className={styles.field}>
+                        <label>الحالة</label>
+                        <select value={adminForm.active ? '1' : '0'} onChange={(e) => setAdminForm((f) => ({ ...f, active: e.target.value === '1' }))}>
+                          <option value="1">نشط</option>
+                          <option value="0">غير نشط</option>
+                        </select>
+                      </div>
+                      <div className="sm:col-span-2 flex items-center gap-3 pt-2">
+                        <button type="submit" className={`${styles.btn} ${styles.btnOasis}`}>حفظ المشرف</button>
+                        <button type="button" onClick={closeAdminForm} className={`${styles.btn} ${styles.btnGhost}`}>إلغاء</button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </section>
             )}
 
@@ -447,40 +541,48 @@ export default function DashboardPage() {
                 </div>
 
                 <div className={`${styles.panel} overflow-hidden`}>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-right" style={{ background: 'var(--sand-2)', color: 'var(--ink-soft)' }}>
-                        <th className="px-4 py-3 font-bold">المعلم</th>
-                        <th className="px-4 py-3 font-bold">التصنيف</th>
-                        <th className="px-4 py-3 font-bold">الحالة</th>
-                        <th className="px-4 py-3 font-bold">إجراءات</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {places.map((p) => (
-                        <tr key={p.id} className={`${styles.rowHover} border-t`} style={{ borderColor: 'var(--line)' }}>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <img src={p.image} className="w-10 h-10 rounded-lg object-cover shrink-0" alt="" />
-                              <span className="font-semibold">{p.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3"><span className={styles.catChip}>{p.category}</span></td>
-                          <td className="px-4 py-3">
-                            <span className={`${styles.badge} ${p.status === 'منشور' ? styles.badgeOnline : styles.badgeMaint}`}>
-                              <span className={styles.badgeDot} />{p.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`} title="تعديل" onClick={() => openEditPlace(p)}><IconEdit /></button>
-                              <button className={`${styles.btn} ${styles.btnClay} ${styles.btnIcon}`} title="حذف" onClick={() => askDelete('place', p.id)}><IconTrash /></button>
-                            </div>
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-right" style={{ background: 'var(--sand-2)', color: 'var(--ink-soft)' }}>
+                          <th className="px-4 py-3 font-bold">المعلم</th>
+                          <th className="px-4 py-3 font-bold">التصنيف</th>
+                          <th className="px-4 py-3 font-bold">الحالة</th>
+                          <th className="px-4 py-3 font-bold">إجراءات</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {places.map((p) => (
+                          <tr key={p.id} className={`${styles.rowHover} border-t`} style={{ borderColor: 'var(--line)' }}>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <img src={p.image} className="w-10 h-10 rounded-lg object-cover shrink-0" alt="" />
+                                <span className="font-semibold">{p.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3"><span className={styles.catChip}>{p.category}</span></td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`${styles.badge} ${p.status === 'منشور' ? styles.badgeOnline : styles.badgeMaint}`}
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => togglePlaceStatus(p)}
+                                title="اضغط لتبديل الحالة بين منشور ومسودة"
+                              >
+                                <span className={styles.badgeDot} />{p.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`} title="تعديل" onClick={() => openEditPlace(p)}><IconEdit /></button>
+                                <button className={`${styles.btn} ${styles.btnClay} ${styles.btnIcon}`} title="حذف" onClick={() => askDelete('place', p.id)}><IconTrash /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {!places.length && <EmptyState msg="لا توجد معالم بعد" />}
                 </div>
 
                 {showPlaceForm && (
