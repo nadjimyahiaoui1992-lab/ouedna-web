@@ -2,7 +2,6 @@
 
 export default function LoginPage() {
   return (
-    {/* الحاوية الرئيسية مع صورة خلفية سياحية وتوسيط المحتوى */}
     <div className="min-h-screen flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1542601098-8fc114e148e2?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center bg-no-repeat p-4 relative">
       
       {/* طبقة شفافة داكنة (Overlay) فوق الصورة لتوضيح صندوق الدخول */}
