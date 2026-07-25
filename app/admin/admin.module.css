@@ -1,0 +1,94 @@
+/* Scoped component classes — used as styles.xxx in JSX */
+
+.duneDivider{
+  display:block; width:100%; height:14px; margin:.35rem 0 1rem;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14'%3E%3Cpath d='M0 10 Q 12 0 25 10 T 50 10 T 75 10 T 100 10 T 125 10 T 150 10 T 175 10 T 200 10' fill='none' stroke='%23C99A44' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x;
+  background-size: 50px 14px;
+  opacity:.9;
+}
+
+.panel{
+  background:#fff; border:1px solid var(--line); border-radius:1.1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+  font-weight:700; font-size:.9rem; border-radius:.7rem; padding:.65rem 1.15rem;
+  transition:transform .12s ease, box-shadow .12s ease, background .15s ease;
+  white-space:nowrap; cursor:pointer; border:1px solid transparent;
+}
+.btn:active{ transform: translateY(1px); }
+.btn:disabled{ opacity:.6; cursor:not-allowed; }
+.btnGold{ background:var(--gold); color:#241705; }
+.btnGold:hover{ background:var(--gold-light); }
+.btnOasis{ background:var(--oasis); color:#fff; }
+.btnOasis:hover{ background:var(--oasis-dark); }
+.btnGhost{ background:transparent; color:var(--ink); border-color:var(--line); }
+.btnGhost:hover{ background:var(--sand-2); }
+.btnClay{ background:var(--clay); color:#fff; }
+.btnClay:hover{ background:#9c4c2a; }
+.btnIcon{ padding:.55rem; border-radius:.65rem; }
+
+.badge{ display:inline-flex; align-items:center; gap:.4rem; font-size:.78rem; font-weight:700; padding:.35rem .7rem; border-radius:999px; }
+.badgeDot{ width:.5rem; height:.5rem; border-radius:999px; flex:none; }
+.badgeOnline{ background:var(--oasis-tint); color:var(--oasis-dark); }
+.badgeOnline .badgeDot{ background:var(--oasis); box-shadow:0 0 0 3px rgba(47,110,88,.18); }
+.badgeOffline{ background:var(--clay-tint); color:#7c3d1f; }
+.badgeOffline .badgeDot{ background:var(--clay); box-shadow:0 0 0 3px rgba(184,92,52,.18); }
+.badgeMaint{ background:#F6EAC8; color:#7A5A12; }
+.badgeMaint .badgeDot{ background:var(--gold); box-shadow:0 0 0 3px rgba(201,154,68,.2); }
+
+.sidebar{ background: linear-gradient(180deg, var(--night) 0%, var(--night-2) 100%); }
+.sideLink{
+  display:flex; align-items:center; gap:.7rem; padding:.65rem .9rem; border-radius:.7rem;
+  color:#CBD8CE; font-weight:600; font-size:.92rem; transition:background .15s, color .15s; cursor:pointer;
+}
+.sideLink:hover{ background:rgba(255,255,255,.06); color:#fff; }
+.sideLink.active{ background:var(--oasis); color:#fff; }
+.sideSub{
+  display:flex; align-items:center; gap:.6rem; padding:.5rem .9rem .5rem 2.6rem;
+  color:#A9B7AD; font-size:.85rem; font-weight:600; border-radius:.6rem; cursor:pointer;
+}
+.sideSub:hover{ background:rgba(255,255,255,.05); color:#fff; }
+.sideSub.active{ color:var(--gold-light); }
+
+.statCard{
+  background:#fff; border:1px solid var(--line); border-radius:1rem; padding:1.1rem 1.2rem;
+  box-shadow: var(--shadow-sm); position:relative; overflow:hidden;
+}
+.statCard::before{
+  content:''; position:absolute; inset-inline-start:0; top:0; bottom:0; width:4px; background:var(--gold);
+}
+
+.placeCard{
+  background:#fff; border:1px solid var(--line); border-radius:1rem; overflow:hidden;
+  box-shadow: var(--shadow-sm); transition: box-shadow .15s, transform .15s;
+}
+.placeCard:hover{ box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.placeCard img{ width:100%; height:9.5rem; object-fit:cover; background:var(--sand-2); }
+.catChip{ font-size:.72rem; font-weight:700; padding:.2rem .55rem; border-radius:999px; background:var(--oasis-tint); color:var(--oasis-dark); }
+
+.field label{ display:block; font-size:.85rem; font-weight:700; margin-bottom:.35rem; color:var(--ink); }
+.field input, .field select, .field textarea{
+  width:100%; border:1px solid var(--line); border-radius:.7rem; padding:.6rem .8rem;
+  background:#fff; font-size:.9rem; color:var(--ink); transition:border-color .15s, box-shadow .15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus{
+  outline:none; border-color:var(--oasis); box-shadow:0 0 0 3px rgba(47,110,88,.15);
+}
+
+.modalBackdrop{ background: rgba(14,27,36,.55); backdrop-filter: blur(2px); }
+.rowHover:hover{ background:var(--sand-2); }
+
+.toast{
+  background:var(--night); color:#EFE7D6; border-radius:.8rem; padding:.7rem 1rem;
+  box-shadow: var(--shadow-lg); font-size:.87rem; font-weight:600; border-inline-start:4px solid var(--gold);
+  transition: opacity .3s ease;
+}
+
+@media (max-width: 900px){
+  .sidebar{ position:fixed; inset-inline-start:0; top:0; bottom:0; z-index:40; width:16rem;
+    transform: translateX(110%); transition: transform .22s ease; }
+  .sidebar.open{ transform: translateX(0); }
+}

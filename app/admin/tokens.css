@@ -1,0 +1,33 @@
+/* =========================================================
+   souf360 — Admin design tokens
+   Design language: "ليل الواحة" (Oasis Night)
+   Night-blue dunes, oasis palm green, desert gold.
+   Imported once from app/admin/layout.jsx — applies only to
+   routes under /admin.
+   ========================================================= */
+
+:root{
+  --night:        #142430;
+  --night-2:      #0E1B24;
+  --night-soft:   #1C3140;
+  --sand:         #F4ECDD;
+  --sand-2:       #ECE0C7;
+  --ink:          #22302B;
+  --ink-soft:     #56645C;
+  --oasis:        #2F6E58;
+  --oasis-dark:   #234F3F;
+  --oasis-tint:   #E4EEE7;
+  --gold:         #C99A44;
+  --gold-light:   #E7C685;
+  --clay:         #B85C34;
+  --clay-tint:    #F4E2D6;
+  --line:         #DCD0B4;
+  --shadow-lg: 0 20px 45px -20px rgba(14,27,36,.35);
+  --shadow-sm: 0 2px 10px -4px rgba(14,27,36,.18);
+}
+
+#admin-root, #admin-root * { box-sizing: border-box; }
+
+#admin-root::-webkit-scrollbar,
+#admin-root *::-webkit-scrollbar{ width:8px; height:8px; }
+#admin-root *::-webkit-scrollbar-thumb{ background:var(--line); border-radius:999px; }
