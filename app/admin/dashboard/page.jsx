@@ -3,326 +3,343 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../../lib/supabase/client';
-
-// استدعاء مكون إضافة معلم الذي أنشأناه
+// استدعاء مكون إضافة المعلم
 import AddPlaceForm from '@/components/map/admin/AddPlaceForm'; 
 
 /* ---------------------------------------------------------
-   ثوابت عامة وأيقونات
+   ثوابت عامة وأيقونات (VIP Design)
    --------------------------------------------------------- */
-const CURRENT_USER = { name: 'نجم يحياوي', role: 'مدير عام' };
+const CURRENT_USER = { name: 'نجم يحياوي', role: 'مدير النظام' };
 
 const SITE_STATUS_MAP = {
-  online: { text: 'الموقع يعمل', badge: 'bg-green-100 text-green-700 border border-green-300' },
-  offline: { text: 'الموقع معطل', badge: 'bg-red-100 text-red-700 border border-red-300' },
-  maintenance: { text: 'تحت الصيانة', badge: 'bg-yellow-100 text-yellow-700 border border-yellow-300' },
+  online: { text: 'النظام يعمل بكفاءة', badge: 'bg-[#ECFDF5] text-[#065F46] border border-[#A7F3D0]' },
+  offline: { text: 'النظام متوقف', badge: 'bg-[#FEF2F2] text-[#991B1B] border border-[#FECACA]' },
+  maintenance: { text: 'تحت الصيانة', badge: 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]' },
 };
 
+const EMPTY_ADMIN_FORM = { name: '', email: '', role: 'مشرف', active: true };
+const EMPTY_HERITAGE_FORM = { title: '', image: '', text: '' };
+
 const IconChevron = ({ open }) => (
-  <svg className="mr-auto transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'none' }} width="14" height="14" viewBox="0 0 24 24" fill="none">
-    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  <svg className={`mr-auto transition-transform duration-300 ${open ? 'rotate-180' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
   </svg>
 );
 
 export default function DashboardPage() {
   /* ---------- حالة التنقل ---------- */
-  const [view, setView] = useState('overview'); // overview | add-place | places
+  const [view, setView] = useState('overview'); 
   const [placesMenuOpen, setPlacesMenuOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  /* ---------- حالة الموقع وقاعدة البيانات ---------- */
+  /* ---------- حالة النظام ---------- */
   const [dbOnline, setDbOnline] = useState(true);
   const [siteStatus, setSiteStatus] = useState('online');
   const [siteMenuOpen, setSiteMenuOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
 
-  /* ---------- بيانات المعالم ---------- */
+  /* ---------- البيانات ---------- */
   const [places, setPlaces] = useState([]);
-  const [totalPlaces, setTotalPlaces] = useState(0);
-  const [isLoadingPlaces, setIsLoadingPlaces] = useState(true);
+  const [admins, setAdmins] = useState([]);
+  const [heritageItems, setHeritageItems] = useState([]);
+  const [memories, setMemories] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  /* ---------- النماذج ---------- */
+  const [showAdminForm, setShowAdminForm] = useState(false);
+  const [adminForm, setAdminForm] = useState(EMPTY_ADMIN_FORM);
+  const [showHeritageForm, setShowHeritageForm] = useState(false);
+  const [heritageForm, setHeritageForm] = useState(EMPTY_HERITAGE_FORM);
 
   /* ---------- جلب البيانات ---------- */
   useEffect(() => {
-    fetchPlaces();
-  }, [view]); // أضفنا view لكي يتم تحديث القائمة تلقائياً عند فتحها
+    fetchAllData();
+  }, []);
 
-  async function fetchPlaces() {
-    setIsLoadingPlaces(true);
-    const { data, error, count } = await supabase
-      .from('places')
-      .select('*', { count: 'exact' })
-      .order('id', { ascending: false }); // ترتيب من الأحدث للأقدم
-      
-    if (!error) {
-      setPlaces(data || []);
-      setTotalPlaces(count || 0);
-      setDbOnline(true);
-    } else {
-      setDbOnline(false);
-      console.error(error);
-    }
-    setIsLoadingPlaces(false);
+  async function fetchAllData() {
+    setIsLoading(true);
+    
+    // جلب المعالم
+    const { data: pData, error: pErr } = await supabase.from('places').select('*').order('id', { ascending: false });
+    if (!pErr) { setPlaces(pData || []); setDbOnline(true); } else { setDbOnline(false); }
+
+    // جلب المشرفين
+    const { data: aData } = await supabase.from('admins').select('*');
+    if (aData) setAdmins(aData);
+
+    // جلب التراث
+    const { data: hData } = await supabase.from('heritage').select('*').order('id', { ascending: false });
+    if (hData) setHeritageItems(hData);
+
+    // جلب الذكريات
+    const { data: mData } = await supabase.from('memories').select('*').order('id', { ascending: false });
+    if (mData) setMemories(mData);
+
+    // جلب الآراء
+    const { data: fData } = await supabase.from('feedbacks').select('*').order('id', { ascending: false });
+    if (fData) setFeedbacks(fData);
+
+    setIsLoading(false);
   }
 
-  /* ---------- إجراءات المعالم ---------- */
-  async function togglePlaceStatus(place) {
-    const newStatus = place.status === 'منشور' ? 'مسودة' : 'منشور';
-    const { error } = await supabase.from('places').update({ status: newStatus }).eq('id', place.id);
-    if (!error) {
-      setPlaces(prev => prev.map(p => p.id === place.id ? { ...p, status: newStatus } : p));
-      showToast(newStatus === 'منشور' ? 'تم نشر المعلم' : 'تم تحويل المعلم إلى مسودة');
-    } else {
-      showToast('حدث خطأ أثناء تحديث الحالة');
-    }
-  }
-
-  async function deletePlace(id) {
-    const isConfirmed = window.confirm('هل أنت متأكد من حذف هذا المعلم نهائياً؟');
-    if (!isConfirmed) return;
-
-    const { error } = await supabase.from('places').delete().eq('id', id);
-    if (!error) {
-      setPlaces(prev => prev.filter(p => p.id !== id));
-      setTotalPlaces(prev => prev - 1);
-      showToast('تم الحذف بنجاح');
-    } else {
-      showToast('حدث خطأ أثناء الحذف');
-    }
-  }
-
-  /* ---------- دوال مساعدة ---------- */
+  /* ---------- دوال النظام ---------- */
   function showToast(msg) {
     const id = Date.now();
     setToasts((t) => [...t, { id, msg }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3000);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000);
   }
 
   function goTo(v) {
     setView(v);
     setMobileSidebarOpen(false);
+    setShowAdminForm(false);
+    setShowHeritageForm(false);
   }
 
   function changeSiteStatus(status) {
     setSiteStatus(status);
     setSiteMenuOpen(false);
-    showToast('تم تحديث حالة الموقع إلى: ' + SITE_STATUS_MAP[status].text);
+    showToast('تم تحديث حالة النظام إلى: ' + SITE_STATUS_MAP[status].text);
   }
 
-  const siteStatusInfo = SITE_STATUS_MAP[siteStatus];
+  async function togglePlaceStatus(place) {
+    const newStatus = place.status === 'منشور' ? 'مسودة' : 'منشور';
+    const { error } = await supabase.from('places').update({ status: newStatus }).eq('id', place.id);
+    if (!error) {
+      setPlaces(prev => prev.map(p => p.id === place.id ? { ...p, status: newStatus } : p));
+      showToast(newStatus === 'منشور' ? 'تم نشر المعلم للعامة' : 'تم تحويل المعلم لمسودة');
+    }
+  }
+
+  async function submitAdminForm(e) {
+    e.preventDefault();
+    const { data, error } = await supabase.from('admins').insert([adminForm]).select();
+    if (!error && data) {
+      setAdmins(prev => [...prev, data[0]]);
+      showToast('تم اعتماد المشرف الجديد بنجاح');
+      setShowAdminForm(false);
+      setAdminForm(EMPTY_ADMIN_FORM);
+    } else showToast('خطأ في النظام أثناء الإضافة');
+  }
+
+  async function submitHeritageForm(e) {
+    e.preventDefault();
+    const dataToSave = { title: heritageForm.title, text: heritageForm.text, image: heritageForm.image || 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400' };
+    const { data, error } = await supabase.from('heritage').insert([dataToSave]).select();
+    if (!error && data) {
+      setHeritageItems(prev => [data[0], ...prev]);
+      showToast('تم توثيق العنصر التراثي بنجاح');
+      setShowHeritageForm(false);
+      setHeritageForm(EMPTY_HERITAGE_FORM);
+    } else showToast('خطأ في قاعدة البيانات');
+  }
+
+  async function approveMemory(id) {
+    const { error } = await supabase.from('memories').update({ approved: true }).eq('id', id);
+    if (!error) {
+      setMemories(prev => prev.map(m => m.id === id ? { ...m, approved: true } : m));
+      showToast('تمت الموافقة الرسمية على نشر الذكرى');
+    }
+  }
+
+  async function deleteItem(table, id, setState) {
+    if (!window.confirm('هل أنت متأكد من الحذف النهائي من قاعدة البيانات؟')) return;
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (!error) {
+      setState(prev => prev.filter(item => item.id !== id));
+      showToast('تم حذف السجل بنجاح');
+    } else showToast('إجراء غير مسموح أو خطأ بالنظام');
+  }
+
+  // حساب الإحصائيات المعلقة
+  const pendingMemoriesCount = memories.filter(m => !m.approved).length;
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-gray-900 font-sans" dir="rtl">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#334155] font-sans flex selection:bg-[#D4AF37] selection:text-white" dir="rtl">
       
-      {/* نظام التنبيهات (Toasts) */}
-      <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
+      {/* --- التنبيهات المنبثقة الاحترافية --- */}
+      <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-3">
         {toasts.map((t) => (
-          <div key={t.id} className="bg-gray-800 text-white px-4 py-2 rounded shadow-lg text-sm">
+          <div key={t.id} className="bg-white text-[#1E293B] px-6 py-4 rounded-xl shadow-2xl border-l-4 border-[#D4AF37] text-sm font-bold animate-fade-in flex items-center gap-3">
+            <svg className="w-5 h-5 text-[#D4AF37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             {t.msg}
           </div>
         ))}
       </div>
 
-      <div className="flex min-h-screen">
+      {/* ===================== الشريط الجانبي (Sidebar) ===================== */}
+      <aside className={`${mobileSidebarOpen ? 'block fixed inset-y-0 right-0 z-40' : 'hidden md:flex'} w-72 bg-white flex-col py-6 px-4 border-l border-[#E2E8F0] shadow-sm transition-transform overflow-y-auto`}>
         
-        {/* ===================== الشريط الجانبي ===================== */}
-        <aside className={`${mobileSidebarOpen ? 'block fixed inset-y-0 right-0 z-40' : 'hidden md:flex'} w-64 bg-[#241705] flex-col py-5 px-3 shadow-xl transition-transform`}>
-          
-          <div className="flex items-center gap-3 px-2 mb-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-yellow-600 shrink-0">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M4 20c3-6 6-9 8-16 2 7 5 10 8 16" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
-                <path d="M2 20h20" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-white font-extrabold text-sm">سوف 360</p>
-              <p className="text-xs text-gray-400">لوحة الإدارة</p>
-            </div>
-            <button onClick={() => setMobileSidebarOpen(false)} className="mr-auto text-white md:hidden">✕</button>
+        <div className="flex items-center gap-4 px-3 mb-10">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#D4AF37] to-[#B8962E] shadow-md shrink-0">
+            <span className="text-white font-black text-2xl drop-shadow-sm">س</span>
           </div>
-          
-          <hr className="border-gray-700 mx-2 mb-4" />
+          <div>
+            <p className="text-[#0F172A] font-black text-lg tracking-wide">سوف 360</p>
+            <p className="text-xs text-[#64748B] font-medium mt-0.5">منصة الإدارة الرقمية</p>
+          </div>
+          <button onClick={() => setMobileSidebarOpen(false)} className="mr-auto text-[#94A3B8] hover:text-[#0F172A] md:hidden p-2">✕</button>
+        </div>
+        
+        <nav className="flex-1 flex flex-col gap-2.5">
+          <button className={`flex items-center gap-3.5 p-3.5 text-sm font-bold rounded-xl text-right transition-all duration-300 ${view === 'overview' ? 'bg-[#F8FAFC] text-[#B8962E] shadow-sm ring-1 ring-[#E2E8F0]' : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]'}`} onClick={() => goTo('overview')}>
+            <span className="text-lg">📊</span> المركز الرئيسي
+          </button>
 
-          <nav className="flex-1 flex flex-col gap-2">
-            <button 
-              className={`flex items-center gap-3 p-3 text-sm font-medium rounded-lg text-right transition ${view === 'overview' ? 'bg-yellow-600/20 text-yellow-500' : 'text-gray-300 hover:bg-white/5'}`} 
-              onClick={() => goTo('overview')}
-            >
-              📊 لوحة المعلومات
+          <div>
+            <button className="w-full flex items-center gap-3.5 p-3.5 text-sm font-bold rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] text-right transition-all" onClick={() => setPlacesMenuOpen(!placesMenuOpen)}>
+              <span className="text-lg">📍</span> بنك المعالم السياحية <IconChevron open={placesMenuOpen} />
             </button>
+            {placesMenuOpen && (
+              <div className="flex flex-col gap-1 pr-11 mt-2 border-r-2 border-[#F1F5F9]">
+                <button className={`p-2.5 text-xs font-bold text-right rounded-lg transition-all ${view === 'add-place' ? 'text-[#B8962E] bg-[#F8FAFC]' : 'text-[#64748B] hover:text-[#0F172A]'}`} onClick={() => goTo('add-place')}>＋ إدراج معلم جديد</button>
+                <button className={`p-2.5 text-xs font-bold text-right rounded-lg transition-all ${view === 'places' ? 'text-[#B8962E] bg-[#F8FAFC]' : 'text-[#64748B] hover:text-[#0F172A]'}`} onClick={() => goTo('places')}>📋 قاعدة بيانات المعالم</button>
+              </div>
+            )}
+          </div>
 
+          <button className={`flex items-center gap-3.5 p-3.5 text-sm font-bold rounded-xl text-right transition-all ${view === 'heritage' ? 'bg-[#F8FAFC] text-[#B8962E] shadow-sm ring-1 ring-[#E2E8F0]' : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]'}`} onClick={() => goTo('heritage')}>
+            <span className="text-lg">🏺</span> السجل التراثي للوادي
+          </button>
+
+          <button className={`flex items-center gap-3.5 p-3.5 text-sm font-bold rounded-xl text-right transition-all ${view === 'memories' ? 'bg-[#F8FAFC] text-[#B8962E] shadow-sm ring-1 ring-[#E2E8F0]' : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]'}`} onClick={() => goTo('memories')}>
+            <span className="text-lg">📸</span> ذكريات الزوار
+            {pendingMemoriesCount > 0 && (
+              <span className="mr-auto bg-[#EF4444] text-white text-[10px] px-2.5 py-1 rounded-full font-black shadow-sm animate-pulse">{pendingMemoriesCount} معلق</span>
+            )}
+          </button>
+
+          <button className={`flex items-center gap-3.5 p-3.5 text-sm font-bold rounded-xl text-right transition-all ${view === 'feedback' ? 'bg-[#F8FAFC] text-[#B8962E] shadow-sm ring-1 ring-[#E2E8F0]' : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]'}`} onClick={() => goTo('feedback')}>
+            <span className="text-lg">💬</span> الآراء والشكاوى
+          </button>
+
+          <div className="my-2 border-t border-[#F1F5F9]"></div>
+
+          <button className={`flex items-center gap-3.5 p-3.5 text-sm font-bold rounded-xl text-right transition-all ${view === 'admins' ? 'bg-[#F8FAFC] text-[#B8962E] shadow-sm ring-1 ring-[#E2E8F0]' : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]'}`} onClick={() => goTo('admins')}>
+            <span className="text-lg">🛡️</span> إدارة الصلاحيات
+          </button>
+
+        </nav>
+
+        <div className="mt-6 pt-4 border-t border-[#F1F5F9]">
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-10 h-10 rounded-full bg-[#F1F5F9] border border-[#E2E8F0] flex items-center justify-center font-black text-[#0F172A] text-sm">ن</div>
             <div>
-              <button 
-                className="w-full flex items-center gap-3 p-3 text-sm font-medium rounded-lg text-gray-300 hover:bg-white/5 text-right" 
-                onClick={() => setPlacesMenuOpen(!placesMenuOpen)}
-              >
-                📍 إدارة المعالم
-                <IconChevron open={placesMenuOpen} />
+              <p className="text-[#0F172A] text-sm font-black">{CURRENT_USER.name}</p>
+              <p className="text-[11px] text-[#64748B] font-bold mt-0.5">{CURRENT_USER.role}</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+      
+      {mobileSidebarOpen && <div className="fixed inset-0 bg-[#0F172A]/40 backdrop-blur-sm z-30 md:hidden" onClick={() => setMobileSidebarOpen(false)} />}
+
+      {/* ===================== المحتوى الرئيسي ===================== */}
+      <div className="flex-1 min-w-0 flex flex-col h-screen">
+
+        {/* ---------- الرأس العلوي (Header) مؤسساتي ---------- */}
+        <header className="bg-white/80 backdrop-blur-xl border-b border-[#E2E8F0] px-8 py-4 flex items-center gap-4 sticky top-0 z-20">
+          <button onClick={() => setMobileSidebarOpen(true)} className="p-2 text-[#64748B] bg-[#F1F5F9] rounded-lg md:hidden">☰</button>
+          
+          <div className="hidden sm:flex flex-col">
+            <h2 className="text-lg font-black text-[#0F172A]">نظام إدارة المنصة</h2>
+            <p className="text-xs text-[#64748B] font-medium">الإصدار الرسمي للعرض التقديمي</p>
+          </div>
+
+          <div className="flex items-center gap-4 mr-auto relative">
+            <Link href="/" className="text-sm font-bold text-[#D4AF37] hover:text-[#B8962E] hidden sm:block bg-[#FFFBEB] px-4 py-2 rounded-lg border border-[#FDE68A] transition-colors">
+              معاينة المنصة ↗
+            </Link>
+
+            <span className={`text-xs font-black px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors ${dbOnline ? 'bg-[#ECFDF5] text-[#065F46] border border-[#A7F3D0]' : 'bg-[#FEF2F2] text-[#991B1B] border border-[#FECACA]'}`}>
+              <span className={`w-2 h-2 rounded-full ${dbOnline ? 'bg-[#10B981] animate-pulse' : 'bg-[#EF4444]'}`} />
+              الخادم {dbOnline ? 'متصل' : 'مفصول'}
+            </span>
+            
+            <div className="relative">
+              <button onClick={() => setSiteMenuOpen(!siteMenuOpen)} className={`text-xs font-black px-4 py-2.5 rounded-lg flex items-center gap-2 cursor-pointer transition-all ${SITE_STATUS_MAP[siteStatus].badge}`}>
+                {SITE_STATUS_MAP[siteStatus].text}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
-              
-              {placesMenuOpen && (
-                <div className="flex flex-col gap-1 pr-8 mt-1 border-r border-gray-700">
-                  <button 
-                    className={`p-2 text-xs text-right rounded transition ${view === 'add-place' ? 'text-yellow-500 bg-white/5' : 'text-gray-400 hover:text-white'}`} 
-                    onClick={() => goTo('add-place')}
-                  >
-                    ＋ إضافة معلم جديد
-                  </button>
-                  <button 
-                    className={`p-2 text-xs text-right rounded transition ${view === 'places' ? 'text-yellow-500 bg-white/5' : 'text-gray-400 hover:text-white'}`} 
-                    onClick={() => goTo('places')}
-                  >
-                    📋 قائمة وتعديل المعالم
-                  </button>
+              {siteMenuOpen && (
+                <div className="absolute left-0 mt-3 w-48 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl z-50 overflow-hidden py-1">
+                  <button className="w-full text-right px-4 py-3 text-sm text-[#0F172A] hover:bg-[#F8FAFC] font-bold" onClick={() => changeSiteStatus('online')}>🟢 التشغيل العام</button>
+                  <button className="w-full text-right px-4 py-3 text-sm text-[#0F172A] hover:bg-[#F8FAFC] font-bold" onClick={() => changeSiteStatus('maintenance')}>🟠 وضع الصيانة</button>
+                  <button className="w-full text-right px-4 py-3 text-sm text-[#DC2626] hover:bg-[#FEF2F2] font-bold" onClick={() => changeSiteStatus('offline')}>🔴 إيقاف النظام</button>
                 </div>
               )}
             </div>
-          </nav>
-        </aside>
+          </div>
+        </header>
 
-        {mobileSidebarOpen && <div className="fixed inset-0 bg-black/40 z-30 md:hidden" onClick={() => setMobileSidebarOpen(false)} />}
+        {/* ---------- محتوى الصفحات ---------- */}
+        <main className="flex-1 p-6 sm:p-10 overflow-y-auto">
+          
+          {/* 1. المركز الرئيسي (Overview) */}
+          {view === 'overview' && (
+            <div className="space-y-8 max-w-7xl mx-auto animate-fade-in">
+              <div className="bg-white p-8 rounded-2xl border border-[#E2E8F0] shadow-sm flex justify-between items-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-blend-overlay">
+                <div>
+                  <h1 className="text-2xl font-black text-[#0F172A]">المركز الإحصائي العام</h1>
+                  <p className="text-[#64748B] text-sm mt-2 font-medium">ملخص فوري لبيانات منصة "سوف 360" الذكية.</p>
+                </div>
+                <div className="hidden sm:block text-5xl">📊</div>
+              </div>
 
-        {/* ===================== المحتوى الرئيسي ===================== */}
-        <div className="flex-1 min-w-0 bg-gray-50 overflow-y-auto max-h-screen">
-
-          {/* ---------- الرأس العلوي (Header) ---------- */}
-          <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-gray-200 px-4 py-3 flex items-center gap-3 shadow-sm">
-            <button onClick={() => setMobileSidebarOpen(true)} className="p-2 text-gray-600 bg-gray-100 rounded md:hidden">
-              ☰
-            </button>
-
-            <Link href="/" className="text-sm font-semibold text-gray-700 hover:text-black hidden sm:block">
-              ← الرجوع إلى الموقع
-            </Link>
-
-            <div className="flex items-center gap-3 mr-auto relative">
-              <span className={`text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2 ${dbOnline ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                <span className={`w-2 h-2 rounded-full ${dbOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                {dbOnline ? 'متصل بقاعدة البيانات' : 'انقطع الاتصال'}
-              </span>
-              
-              <div className="relative">
-                <button 
-                  onClick={() => setSiteMenuOpen(!siteMenuOpen)} 
-                  className={`text-xs font-bold px-3 py-1.5 rounded flex items-center gap-2 cursor-pointer ${siteStatusInfo.badge}`}
-                >
-                  {siteStatusInfo.text}
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" /></svg>
-                </button>
-
-                {siteMenuOpen && (
-                  <div className="absolute left-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
-                    <button className="w-full text-right px-4 py-2 text-sm hover:bg-gray-100" onClick={() => changeSiteStatus('online')}>🟢 الموقع يعمل</button>
-                    <button className="w-full text-right px-4 py-2 text-sm hover:bg-gray-100" onClick={() => changeSiteStatus('maintenance')}>🟠 تحت الصيانة</button>
-                    <button className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50" onClick={() => changeSiteStatus('offline')}>🔴 إيقاف الموقع</button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                  { title: 'إجمالي المعالم', count: places.length, icon: '📍', color: 'text-[#3B82F6]', bg: 'bg-[#EFF6FF]' },
+                  { title: 'العناصر التراثية', count: heritageItems.length, icon: '🏺', color: 'text-[#D4AF37]', bg: 'bg-[#FFFBEB]' },
+                  { title: 'الذكريات المعلقة', count: pendingMemoriesCount, icon: '📸', color: 'text-[#EF4444]', bg: 'bg-[#FEF2F2]', alert: pendingMemoriesCount > 0 },
+                  { title: 'رسائل الجمهور', count: feedbacks.length, icon: '💬', color: 'text-[#8B5CF6]', bg: 'bg-[#F5F3FF]' },
+                ].map((stat, i) => (
+                  <div key={i} className={`bg-white p-6 rounded-2xl border ${stat.alert ? 'border-[#FECACA] ring-2 ring-[#FEE2E2]' : 'border-[#E2E8F0]'} shadow-sm flex flex-col relative`}>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4 ${stat.bg}`}>{stat.icon}</div>
+                    <h3 className="text-[#64748B] text-sm font-bold mb-1">{stat.title}</h3>
+                    <p className={`text-4xl font-black ${stat.color}`}>{isLoading ? '...' : stat.count}</p>
+                    {stat.alert && <span className="absolute top-6 left-6 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>}
                   </div>
-                )}
+                ))}
               </div>
             </div>
-          </header>
+          )}
 
-          {/* ---------- محتوى الصفحات ---------- */}
-          <main className="p-4 sm:p-6">
-            
-            {/* 1. صفحة لوحة المعلومات (الإحصائيات) */}
-            {view === 'overview' && (
-              <div className="space-y-6">
-                <h1 className="text-2xl font-bold text-gray-800">نظرة عامة على الإحصائيات</h1>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center text-center">
-                    <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4 text-2xl">📍</div>
-                    <h3 className="text-gray-500 text-sm font-bold">إجمالي المعالم المسجلة</h3>
-                    <p className="text-3xl font-black text-gray-800 mt-2">{totalPlaces}</p>
-                  </div>
-                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center text-center opacity-70">
-                    <div className="w-14 h-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4 text-2xl">👁️</div>
-                    <h3 className="text-gray-500 text-sm font-bold">عدد الزوار (تقريبي)</h3>
-                    <p className="text-lg font-bold text-gray-400 mt-2 bg-gray-100 px-3 py-1 rounded-full">تحت التطوير ⏳</p>
-                  </div>
-                </div>
+          {/* 2. إدراج معلم */}
+          {view === 'add-place' && <div className="max-w-5xl mx-auto"><AddPlaceForm /></div>}
+
+          {/* 3. قاعدة بيانات المعالم */}
+          {view === 'places' && (
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden max-w-7xl mx-auto animate-fade-in">
+              <div className="p-6 border-b border-[#E2E8F0] flex justify-between items-center bg-[#F8FAFC]">
+                <h2 className="text-xl font-black text-[#0F172A]">السجل الموحد للمعالم السياحية</h2>
+                <button onClick={() => goTo('add-place')} className="bg-[#D4AF37] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#B8962E] transition-colors shadow-sm">＋ إضافة سجل</button>
               </div>
-            )}
-
-            {/* 2. صفحة إضافة معلم */}
-            {view === 'add-place' && (
-              <div className="animate-fade-in">
-                <AddPlaceForm />
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-sm">
+                  <thead className="bg-white text-[#64748B] border-b-2 border-[#F1F5F9]">
+                    <tr><th className="p-5 font-bold">اسم المعلم</th><th className="p-5 font-bold">التصنيف الرئيسي</th><th className="p-5 font-bold">حالة الظهور</th><th className="p-5 font-bold text-left">إدارة السجل</th></tr>
+                  </thead>
+                  <tbody>
+                    {places.map(p => (
+                      <tr key={p.id} className="border-b border-[#F1F5F9] hover:bg-[#F8FAFC] transition-colors">
+                        <td className="p-5 font-black text-[#0F172A]">{p.name}</td>
+                        <td className="p-5 text-[#475569] font-medium">{p.main_category}</td>
+                        <td className="p-5">
+                          <button onClick={() => togglePlaceStatus(p)} className={`px-4 py-1.5 rounded-md text-xs font-black transition-all border ${p.status === 'منشور' ? 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0]' : 'bg-[#F1F5F9] text-[#64748B] border-[#E2E8F0]'}`}>{p.status || 'مسودة'}</button>
+                        </td>
+                        <td className="p-5 text-left">
+                          <button onClick={() => deleteItem('places', p.id, setPlaces)} className="text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-4 py-1.5 rounded-md text-xs font-bold transition-colors">حذف نهائي</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* 3. صفحة عرض قائمة المعالم */}
-            {view === 'places' && (
-              <div className="space-y-6 animate-fade-in">
-                <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                  <h2 className="text-xl font-bold text-gray-800">قائمة المعالم المسجلة</h2>
-                  <button onClick={() => goTo('add-place')} className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">
-                    + إضافة معلم جديد
-                  </button>
-                </div>
-
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                  {isLoadingPlaces ? (
-                    <div className="p-12 text-center text-gray-500 font-medium">
-                      جاري تحميل المعالم من قاعدة البيانات...
-                    </div>
-                  ) : places.length === 0 ? (
-                    <div className="p-16 text-center flex flex-col items-center">
-                      <span className="text-6xl mb-4">📭</span>
-                      <h3 className="text-xl font-bold text-gray-700">قاعدة البيانات فارغة حالياً</h3>
-                      <p className="text-gray-500 mt-2">لم تقم بإضافة أي معلم سياحي بعد، يمكنك البدء الآن.</p>
-                      <button onClick={() => goTo('add-place')} className="mt-6 border border-yellow-600 text-yellow-700 hover:bg-yellow-50 px-6 py-2 rounded-lg font-bold transition">
-                        إضافة أول معلم
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-right text-sm">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                          <tr>
-                            <th className="p-4 text-gray-600 font-semibold">اسم المعلم</th>
-                            <th className="p-4 text-gray-600 font-semibold">التصنيف</th>
-                            <th className="p-4 text-gray-600 font-semibold">البلدية</th>
-                            <th className="p-4 text-gray-600 font-semibold">الحالة</th>
-                            <th className="p-4 text-gray-600 font-semibold text-left">إجراءات</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {places.map(place => (
-                            <tr key={place.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                              <td className="p-4 font-bold text-gray-800">{place.name}</td>
-                              <td className="p-4 text-gray-600">
-                                {place.main_category} {place.sub_category ? `> ${place.sub_category}` : ''}
-                              </td>
-                              <td className="p-4 text-gray-600">{place.municipality || 'غير محدد'}</td>
-                              <td className="p-4">
-                                <button 
-                                  onClick={() => togglePlaceStatus(place)}
-                                  className={`px-3 py-1 rounded-full text-xs font-bold transition ${place.status === 'منشور' ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                                >
-                                  {place.status || 'مسودة'}
-                                </button>
-                              </td>
-                              <td className="p-4 flex gap-2 justify-end">
-                                <button className="px-3 py-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 font-medium" title="تعديل">
-                                  تعديل
-                                </button>
-                                <button onClick={() => deletePlace(place.id)} className="px-3 py-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 font-medium" title="حذف">
-                                  حذف
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-          </main>
-        </div>
-      </div>
-    </div>
-  );
-       }
+          {/* 4. السجل التراثي */}
+          {view === 'heritage' && (
+            <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
+              <div className="flex justify-between items-center bg-white p-6 rounded
