@@ -17,22 +17,28 @@ export default function LoginPage() {
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); // منع إعادة تحميل الصفحة الافتراضي
+    e.preventDefault(); 
     setLoading(true);
     setErrorMsg("");
 
-    // إرسال البيانات للتحقق منها في Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    });
+    try {
+      // إرسال البيانات للتحقق منها في Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
 
-    if (error) {
-      setErrorMsg("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
-      setLoading(false);
-    } else {
-      // توجيه المستخدم إلى لوحة التحكم بعد نجاح الدخول
-      router.push("/admin/dashboard");
+      if (error) {
+        setErrorMsg("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
+        setLoading(false); // إيقاف حالة التحميل ليعود الزر لطبيعته
+      } else {
+        // توجيه المستخدم إلى لوحة التحكم بعد نجاح الدخول
+        router.push("/admin/dashboard");
+      }
+    } catch (err) {
+      // التقاط أي خطأ غير متوقع وإيقاف تعليق الزر
+      setErrorMsg("فشل الاتصال بقاعدة البيانات. تأكد من إضافة روابط Supabase في إعدادات Vercel.");
+      setLoading(false); // إيقاف حالة التحميل
     }
   };
 
@@ -104,4 +110,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-        }
+}
