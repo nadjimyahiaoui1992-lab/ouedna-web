@@ -2,8 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase/client';
 import AddPlaceForm from '@/components/map/admin/AddPlaceForm';
+
+/* غيّر هذا المسار إذا كانت صفحة تسجيل الدخول عندك في مكان آخر */
+const LOGIN_PATH = '/login';
+/* اسم bucket تخزين الصور في Supabase Storage */
+const IMAGES_BUCKET = 'images';
 
 /* ---------------------------------------------------------
    ثوابت عامة وأيقونات
@@ -26,6 +32,8 @@ const IconChevron = ({ open }) => (
 );
 
 export default function DashboardPage() {
+  const router = useRouter();
+
   /* ---------- حالة التنقل ---------- */
   const [view, setView] = useState('overview');
   const [placesMenuOpen, setPlacesMenuOpen] = useState(false);
@@ -35,6 +43,7 @@ export default function DashboardPage() {
   const [dbOnline, setDbOnline] = useState(true);
   const [siteStatus, setSiteStatus] = useState('online');
   const [siteMenuOpen, setSiteMenuOpen] = useState(false);
+  const [updatingSiteStatus, setUpdatingSiteStatus] = useState(false);
   const [toasts, setToasts] = useState([]);
 
   /* ---------- البيانات ---------- */
@@ -50,6 +59,9 @@ export default function DashboardPage() {
   const [adminForm, setAdminForm] = useState(EMPTY_ADMIN_FORM);
   const [showHeritageForm, setShowHeritageForm] = useState(false);
   const [heritageForm, setHeritageForm] = useState(EMPTY_HERITAGE_FORM);
+  const [heritageImageFile, setHeritageImageFile] = useState(null);
+  const [heritageImagePreview, setHeritageImagePreview] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   /* ---------- جلب البيانات ---------- */
   useEffect(() => {
@@ -73,6 +85,9 @@ export default function DashboardPage() {
     const { data: fData } = await supabase.from('feedbacks').select('*').order('id', { ascending: false });
     if (fData) setFeedbacks(fData);
 
+    const { data: sData } = await supabase.from('site_settings').select('*').eq('id', 1).single();
+    if (sData?.site_status) setSiteStatus(sData.site_status);
+
     setIsLoading(false);
   }
 
@@ -88,12 +103,31 @@ export default function DashboardPage() {
     setMobileSidebarOpen(false);
     setShowAdminForm(false);
     setShowHeritageForm(false);
+    setHeritageImageFile(null);
+    setHeritageImagePreview('');
   }
 
-  function changeSiteStatus(status) {
-    setSiteStatus(status);
+  async function changeSiteStatus(status) {
+    if (status === siteStatus || updatingSiteStatus) return;
+    setUpdatingSiteStatus(true);
+    const { error } = await supabase
+      .from('site_settings')
+      .update({ site_status: status, maintenance_mode: status === 'maintenance' })
+      .eq('id', 1);
+
+    if (!error) {
+      setSiteStatus(status);
+      showToast('تم تحديث حالة النظام إلى: ' + SITE_STATUS_MAP[status].text);
+    } else {
+      showToast('تعذر تحديث حالة النظام، حاول مجدداً');
+    }
     setSiteMenuOpen(false);
-    showToast('تم تحديث حالة النظام إلى: ' + SITE_STATUS_MAP[status].text);
+    setUpdatingSiteStatus(false);
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push(LOGIN_PATH);
   }
 
   /* ---------- العمليات على البيانات ---------- */
@@ -117,16 +151,47 @@ export default function DashboardPage() {
     } else showToast('خطأ في النظام أثناء الإضافة');
   }
 
+  function handleHeritageImageChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setHeritageImageFile(file);
+    setHeritageImagePreview(URL.createObjectURL(file));
+  }
+
+  function closeHeritageForm() {
+    setShowHeritageForm(false);
+    setHeritageForm(EMPTY_HERITAGE_FORM);
+    setHeritageImageFile(null);
+    setHeritageImagePreview('');
+  }
+
   async function submitHeritageForm(e) {
     e.preventDefault();
-    const dataToSave = { title: heritageForm.title, text: heritageForm.text, image: heritageForm.image || 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400' };
+    setUploadingImage(true);
+
+    let imageUrl = 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400';
+
+    if (heritageImageFile) {
+      const fileExt = heritageImageFile.name.split('.').pop();
+      const filePath = `heritage/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from(IMAGES_BUCKET).upload(filePath, heritageImageFile);
+      if (uploadError) {
+        showToast('تعذر رفع الصورة، حاول مجدداً');
+        setUploadingImage(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from(IMAGES_BUCKET).getPublicUrl(filePath);
+      imageUrl = urlData.publicUrl;
+    }
+
+    const dataToSave = { title: heritageForm.title, text: heritageForm.text, image: imageUrl };
     const { data, error } = await supabase.from('heritage').insert([dataToSave]).select();
     if (!error && data) {
       setHeritageItems(prev => [data[0], ...prev]);
       showToast('تم توثيق العنصر التراثي بنجاح');
-      setShowHeritageForm(false);
-      setHeritageForm(EMPTY_HERITAGE_FORM);
+      closeHeritageForm();
     } else showToast('خطأ في قاعدة البيانات');
+    setUploadingImage(false);
   }
 
   async function approveMemory(id) {
@@ -215,7 +280,7 @@ export default function DashboardPage() {
 
         </nav>
 
-        <div className="mt-6 pt-4 border-t border-[#F1F5F9]">
+        <div className="mt-6 pt-4 border-t border-[#F1F5F9] space-y-3">
           <div className="flex items-center gap-3 px-2">
             <div className="w-10 h-10 rounded-full bg-[#F1F5F9] border border-[#E2E8F0] flex items-center justify-center font-black text-[#0F172A] text-sm">ن</div>
             <div>
@@ -223,6 +288,9 @@ export default function DashboardPage() {
               <p className="text-[11px] text-[#64748B] font-bold mt-0.5">{CURRENT_USER.role}</p>
             </div>
           </div>
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 p-2.5 text-xs font-bold text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] rounded-lg transition-colors">
+            🚪 تسجيل الخروج
+          </button>
         </div>
       </aside>
 
@@ -251,15 +319,15 @@ export default function DashboardPage() {
             </span>
 
             <div className="relative">
-              <button onClick={() => setSiteMenuOpen(!siteMenuOpen)} className={`text-xs font-black px-4 py-2.5 rounded-lg flex items-center gap-2 cursor-pointer transition-all ${SITE_STATUS_MAP[siteStatus].badge}`}>
-                {SITE_STATUS_MAP[siteStatus].text}
+              <button onClick={() => setSiteMenuOpen(!siteMenuOpen)} disabled={updatingSiteStatus} className={`text-xs font-black px-4 py-2.5 rounded-lg flex items-center gap-2 cursor-pointer transition-all disabled:opacity-60 ${SITE_STATUS_MAP[siteStatus].badge}`}>
+                {updatingSiteStatus ? 'جارٍ التحديث...' : SITE_STATUS_MAP[siteStatus].text}
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
               {siteMenuOpen && (
                 <div className="absolute left-0 mt-3 w-48 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl z-50 overflow-hidden py-1">
-                  <button className="w-full text-right px-4 py-3 text-sm text-[#0F172A] hover:bg-[#F8FAFC] font-bold" onClick={() => changeSiteStatus('online')}>🟢 التشغيل العام</button>
-                  <button className="w-full text-right px-4 py-3 text-sm text-[#0F172A] hover:bg-[#F8FAFC] font-bold" onClick={() => changeSiteStatus('maintenance')}>🟠 وضع الصيانة</button>
-                  <button className="w-full text-right px-4 py-3 text-sm text-[#DC2626] hover:bg-[#FEF2F2] font-bold" onClick={() => changeSiteStatus('offline')}>🔴 إيقاف النظام</button>
+                  <button disabled={updatingSiteStatus} className="w-full text-right px-4 py-3 text-sm text-[#0F172A] hover:bg-[#F8FAFC] font-bold disabled:opacity-50" onClick={() => changeSiteStatus('online')}>🟢 التشغيل العام {siteStatus === 'online' && '✓'}</button>
+                  <button disabled={updatingSiteStatus} className="w-full text-right px-4 py-3 text-sm text-[#0F172A] hover:bg-[#F8FAFC] font-bold disabled:opacity-50" onClick={() => changeSiteStatus('maintenance')}>🟠 وضع الصيانة {siteStatus === 'maintenance' && '✓'}</button>
+                  <button disabled={updatingSiteStatus} className="w-full text-right px-4 py-3 text-sm text-[#DC2626] hover:bg-[#FEF2F2] font-bold disabled:opacity-50" onClick={() => changeSiteStatus('offline')}>🔴 إيقاف النظام {siteStatus === 'offline' && '✓'}</button>
                 </div>
               )}
             </div>
@@ -364,7 +432,7 @@ export default function DashboardPage() {
               </div>
 
               {showHeritageForm && (
-                <div className="fixed inset-0 bg-[#0F172A]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowHeritageForm(false)}>
+                <div className="fixed inset-0 bg-[#0F172A]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeHeritageForm}>
                   <form onSubmit={submitHeritageForm} onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 space-y-5">
                     <h3 className="text-lg font-black text-[#0F172A]">توثيق عنصر تراثي جديد</h3>
 
@@ -374,8 +442,22 @@ export default function DashboardPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-[#64748B] mb-1.5">رابط الصورة (اختياري)</label>
-                      <input value={heritageForm.image} onChange={(e) => setHeritageForm(f => ({ ...f, image: e.target.value }))} className="w-full border border-[#E2E8F0] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" placeholder="https://..." />
+                      <label className="block text-xs font-bold text-[#64748B] mb-1.5">صورة العنصر</label>
+                      <div className="flex gap-3">
+                        <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 border-2 border-dashed border-[#E2E8F0] rounded-lg px-4 py-3 text-xs font-bold text-[#64748B] hover:border-[#D4AF37] hover:text-[#B8962E] transition-colors">
+                          📁 من الهاتف / الحاسوب
+                          <input type="file" accept="image/*" onChange={handleHeritageImageChange} className="hidden" />
+                        </label>
+                        <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 border-2 border-dashed border-[#E2E8F0] rounded-lg px-4 py-3 text-xs font-bold text-[#64748B] hover:border-[#D4AF37] hover:text-[#B8962E] transition-colors">
+                          📷 التقاط مباشر
+                          <input type="file" accept="image/*" capture="environment" onChange={handleHeritageImageChange} className="hidden" />
+                        </label>
+                      </div>
+                      {heritageImagePreview ? (
+                        <img src={heritageImagePreview} alt="معاينة" className="mt-3 w-full h-36 object-cover rounded-lg border border-[#E2E8F0]" />
+                      ) : (
+                        <p className="text-[11px] text-[#94A3B8] font-medium mt-2">إن لم تختر صورة، سيتم استخدام صورة افتراضية.</p>
+                      )}
                     </div>
 
                     <div>
@@ -384,8 +466,8 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex gap-3 pt-2">
-                      <button type="submit" className="flex-1 bg-[#D4AF37] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#B8962E] transition-colors">حفظ التوثيق</button>
-                      <button type="button" onClick={() => setShowHeritageForm(false)} className="flex-1 bg-[#F1F5F9] text-[#334155] py-2.5 rounded-lg text-sm font-bold hover:bg-[#E2E8F0] transition-colors">إلغاء</button>
+                      <button type="submit" disabled={uploadingImage} className="flex-1 bg-[#D4AF37] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#B8962E] transition-colors disabled:opacity-60 disabled:cursor-not-allowed">{uploadingImage ? 'جارٍ الحفظ...' : 'حفظ التوثيق'}</button>
+                      <button type="button" onClick={closeHeritageForm} disabled={uploadingImage} className="flex-1 bg-[#F1F5F9] text-[#334155] py-2.5 rounded-lg text-sm font-bold hover:bg-[#E2E8F0] transition-colors disabled:opacity-60">إلغاء</button>
                     </div>
                   </form>
                 </div>
