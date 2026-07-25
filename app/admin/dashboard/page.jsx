@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import styles from '../../admin.module.css'; // تأكد من أن مسار ملف CSS صحيح (ربما تحتاج لـ '../../' للرجوع من dashboard ثم admin)
+import styles from '../../admin.module.css';
 import { supabase } from '../../../lib/supabase/client';
 
 /* ---------------------------------------------------------
@@ -31,21 +31,9 @@ const IconChevron = ({ open }) => (
 );
 
 /* ---------------------------------------------------------
-   بيانات وهمية للأقسام التي لم تُربط بعد
+   ثوابت عامة
    --------------------------------------------------------- */
-const INITIAL_HERITAGE = [
-  { id: 1, title: 'صناعة الزرابي التقليدية', image: 'https://images.unsplash.com/photo-1600166898405-da9535204843?w=400', text: 'حرفة يدوية متوارثة عبر الأجيال في الوادي.' },
-  { id: 2, title: 'أكلة الرفيس', image: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400', text: 'من أشهر الأطباق التقليدية في المناسبات.' },
-];
-const INITIAL_MEMORIES = [
-  { id: 1, name: 'أمينة ك.', image: 'https://images.unsplash.com/photo-1470004914212-05527e49370b?w=400', text: 'زيارتي لواحة كوينين كانت تجربة لا تُنسى!', approved: true },
-  { id: 2, name: 'محمد ر.', image: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=400', text: 'مهرجان النخيل هذا العام كان رائعاً.', approved: false },
-];
-const INITIAL_FEEDBACKS = [
-  { id: 1, name: 'خالد س.', message: 'أقترح إضافة خرائط تفاعلية لكل معلم.', date: '2026-07-10' },
-  { id: 2, name: 'ليلى ب.', message: 'الموقع رائع، أتمنى دعم اللغة الفرنسية أيضاً.', date: '2026-07-15' },
-];
-const SITE_VISITS = 18420;
+const SITE_VISITS = 18420; // ملاحظة: هذا الرقم ثابت حالياً ويحتاج لنظام تتبع منفصل ليكون حقيقياً
 const CURRENT_USER = { name: 'نجم يحياوي', role: 'مدير عام' };
 
 const SITE_STATUS_MAP = {
@@ -71,9 +59,9 @@ export default function DashboardPage() {
   /* ---------- البيانات ---------- */
   const [places, setPlaces] = useState([]);
   const [admins, setAdmins] = useState([]);
-  const [heritageItems, setHeritageItems] = useState(INITIAL_HERITAGE);
-  const [memories, setMemories] = useState(INITIAL_MEMORIES);
-  const [feedbacks, setFeedbacks] = useState(INITIAL_FEEDBACKS);
+  const [heritageItems, setHeritageItems] = useState([]);
+  const [memories, setMemories] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
 
   /* ---------- نموذج إضافة/تعديل معلم ---------- */
   const [showPlaceForm, setShowPlaceForm] = useState(false);
@@ -88,6 +76,9 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchPlaces();
     fetchAdmins();
+    fetchHeritage();
+    fetchMemories();
+    fetchFeedbacks();
   }, []);
 
   async function fetchPlaces() {
@@ -103,6 +94,21 @@ export default function DashboardPage() {
   async function fetchAdmins() {
     const { data, error } = await supabase.from('admins').select('*');
     if (data && !error) setAdmins(data);
+  }
+
+  async function fetchHeritage() {
+    const { data, error } = await supabase.from('heritage').select('*');
+    if (data && !error) setHeritageItems(data);
+  }
+
+  async function fetchMemories() {
+    const { data, error } = await supabase.from('memories').select('*');
+    if (data && !error) setMemories(data);
+  }
+
+  async function fetchFeedbacks() {
+    const { data, error } = await supabase.from('feedbacks').select('*');
+    if (data && !error) setFeedbacks(data);
   }
 
   function showToast(msg) {
@@ -178,11 +184,18 @@ export default function DashboardPage() {
     closePlaceForm();
   }
 
-  function approveMemory(id) {
-    setMemories((prev) => prev.map((m) => (m.id === id ? { ...m, approved: true } : m)));
-    showToast('تم نشر الذكرى');
+  /* ---------- الذاكرة: نشر ---------- */
+  async function approveMemory(id) {
+    const { error } = await supabase.from('memories').update({ approved: true }).eq('id', id);
+    if (!error) {
+      setMemories((prev) => prev.map((m) => (m.id === id ? { ...m, approved: true } : m)));
+      showToast('تم نشر الذكرى');
+    } else {
+      showToast('حدث خطأ أثناء النشر');
+    }
   }
 
+  /* ---------- الحذف ---------- */
   function askDelete(type, id) {
     setConfirmTarget({ type, id });
   }
@@ -199,10 +212,19 @@ export default function DashboardPage() {
       const { error } = await supabase.from('admins').delete().eq('id', id);
       if (!error) setAdmins((prev) => prev.filter((a) => a.id !== id));
     }
-    if (type === 'heritage') setHeritageItems((prev) => prev.filter((h) => h.id !== id));
-    if (type === 'memory') setMemories((prev) => prev.filter((m) => m.id !== id));
-    if (type === 'feedback') setFeedbacks((prev) => prev.filter((f) => f.id !== id));
-    
+    if (type === 'heritage') {
+      const { error } = await supabase.from('heritage').delete().eq('id', id);
+      if (!error) setHeritageItems((prev) => prev.filter((h) => h.id !== id));
+    }
+    if (type === 'memory') {
+      const { error } = await supabase.from('memories').delete().eq('id', id);
+      if (!error) setMemories((prev) => prev.filter((m) => m.id !== id));
+    }
+    if (type === 'feedback') {
+      const { error } = await supabase.from('feedbacks').delete().eq('id', id);
+      if (!error) setFeedbacks((prev) => prev.filter((f) => f.id !== id));
+    }
+
     showToast('تم الحذف بنجاح');
     setConfirmTarget(null);
   }
@@ -298,7 +320,6 @@ export default function DashboardPage() {
               </Link>
 
               <div className="flex items-center gap-2 mr-auto">
-                {/* حالة الاتصال بقاعدة البيانات */}
                 <span className={`${styles.badge} ${dbOnline ? styles.badgeOnline : styles.badgeOffline}`}>
                   <span className={styles.badgeDot} />
                   {dbOnline ? 'متصل بقاعدة البيانات' : 'انقطع الاتصال بقاعدة البيانات'}
@@ -310,7 +331,6 @@ export default function DashboardPage() {
                   </svg>
                 </button>
 
-                {/* حالة الموقع */}
                 <div className="relative">
                   <button onClick={() => setSiteMenuOpen((v) => !v)} className={`${styles.badge} ${siteStatusInfo.badge}`}>
                     <span className={styles.badgeDot} />
@@ -377,4 +397,7 @@ export default function DashboardPage() {
                     </div>
                   ) : <EmptyState msg="لا توجد معالم منشورة بعد" />}
                 </div>
-              </se>
+              </section>
+            )}
+
+            {/
