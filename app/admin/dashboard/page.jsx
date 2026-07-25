@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from '../admin.module.css';
+import { supabase } from '@/lib/client'; // استدعاء عميل Supabase
 
 /* ---------------------------------------------------------
    أيقونات صغيرة قابلة لإعادة الاستخدام
@@ -30,19 +31,8 @@ const IconChevron = ({ open }) => (
 );
 
 /* ---------------------------------------------------------
-   بيانات وهمية أولية — استبدلها باستدعاءات Supabase الحقيقية
+   بيانات وهمية للأقسام التي لم تُربط بعد (التراث، الذكريات، الآراء)
    --------------------------------------------------------- */
-const INITIAL_PLACES = [
-  { id: 1, name: 'بحيرة أم الطيور', category: 'طبيعي', status: 'منشور', image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=400', details: 'محمية طبيعية تجذب الطيور المهاجرة.' },
-  { id: 2, name: 'قصر بن قانة', category: 'تراثي', status: 'منشور', image: 'https://images.unsplash.com/photo-1519817650390-64a93db51149?w=400', details: 'معلم تراثي يعكس العمارة التقليدية للمنطقة.' },
-  { id: 3, name: 'واحة كوينين', category: 'طبيعي', status: 'منشور', image: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400', details: 'واحة نخيل ضمن تضاريس الكثبان الرملية.' },
-  { id: 4, name: 'مسجد سيدي الرقاد', category: 'ديني', status: 'مسودة', image: 'https://images.unsplash.com/photo-1564769662533-4f00a87b4056?w=400', details: 'معلم ديني تاريخي في المنطقة.' },
-];
-const INITIAL_ADMINS = [
-  { id: 1, name: 'نجم يحياوي', email: 'najim@souf360.dz', role: 'مدير عام', active: true },
-  { id: 2, name: 'سارة بلقاسم', email: 'sara@souf360.dz', role: 'مشرف محتوى', active: true },
-  { id: 3, name: 'يوسف حمدي', email: 'youcef@souf360.dz', role: 'مشرف معالم', active: false },
-];
 const INITIAL_HERITAGE = [
   { id: 1, title: 'صناعة الزرابي التقليدية', image: 'https://images.unsplash.com/photo-1600166898405-da9535204843?w=400', text: 'حرفة يدوية متوارثة عبر الأجيال في الوادي.' },
   { id: 2, title: 'أكلة الرفيس', image: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400', text: 'من أشهر الأطباق التقليدية في المناسبات.' },
@@ -55,7 +45,7 @@ const INITIAL_FEEDBACKS = [
   { id: 1, name: 'خالد س.', message: 'أقترح إضافة خرائط تفاعلية لكل معلم.', date: '2026-07-10' },
   { id: 2, name: 'ليلى ب.', message: 'الموقع رائع، أتمنى دعم اللغة الفرنسية أيضاً.', date: '2026-07-15' },
 ];
-const SITE_VISITS = 18420; // TODO: اجلبها من جدول تحليلات حقيقي
+const SITE_VISITS = 18420;
 const CURRENT_USER = { name: 'نجم يحياوي', role: 'مدير عام' };
 
 const SITE_STATUS_MAP = {
@@ -79,8 +69,8 @@ export default function DashboardPage() {
   const [siteMenuOpen, setSiteMenuOpen] = useState(false);
 
   /* ---------- البيانات ---------- */
-  const [places, setPlaces] = useState(INITIAL_PLACES);
-  const [admins] = useState(INITIAL_ADMINS);
+  const [places, setPlaces] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [heritageItems, setHeritageItems] = useState(INITIAL_HERITAGE);
   const [memories, setMemories] = useState(INITIAL_MEMORIES);
   const [feedbacks, setFeedbacks] = useState(INITIAL_FEEDBACKS);
@@ -93,6 +83,27 @@ export default function DashboardPage() {
   /* ---------- تأكيد الحذف + Toasts ---------- */
   const [confirmTarget, setConfirmTarget] = useState(null); // { type, id }
   const [toasts, setToasts] = useState([]);
+
+  /* ---------- جلب البيانات من Supabase ---------- */
+  useEffect(() => {
+    fetchPlaces();
+    fetchAdmins();
+  }, []);
+
+  async function fetchPlaces() {
+    const { data, error } = await supabase.from('places').select('*');
+    if (data && !error) {
+      setPlaces(data);
+      setDbOnline(true);
+    } else {
+      setDbOnline(false);
+    }
+  }
+
+  async function fetchAdmins() {
+    const { data, error } = await supabase.from('admins').select('*');
+    if (data && !error) setAdmins(data);
+  }
 
   function showToast(msg) {
     const id = Date.now();
@@ -108,20 +119,16 @@ export default function DashboardPage() {
   /* ---------- تحديث الاتصال بقاعدة البيانات ---------- */
   async function refreshDb() {
     setRefreshing(true);
-    // TODO: استبدل هذا بفحص حقيقي، مثال:
-    // const { error } = await supabase.from('places').select('id').limit(1);
-    // setDbOnline(!error);
-    await new Promise((r) => setTimeout(r, 600));
-    setDbOnline(true);
+    const { error } = await supabase.from('places').select('id').limit(1);
+    setDbOnline(!error);
     setRefreshing(false);
-    showToast('تم تحديث حالة الاتصال بقاعدة البيانات');
+    showToast(error ? 'فشل الاتصال بقاعدة البيانات' : 'تم تحديث حالة الاتصال بنجاح');
   }
 
   /* ---------- تغيير حالة الموقع ---------- */
   function changeSiteStatus(status) {
     setSiteStatus(status);
     setSiteMenuOpen(false);
-    // TODO: أرسل التحديث إلى الخلفية، مثال: PATCH /api/site-status
     showToast('تم تحديث حالة الموقع إلى: ' + SITE_STATUS_MAP[status].text);
   }
 
@@ -132,38 +139,52 @@ export default function DashboardPage() {
     setShowPlaceForm(true);
     goTo('places');
   }
+
   function openEditPlace(place) {
     setEditingPlaceId(place.id);
     setPlaceForm({ name: place.name, category: place.category, status: place.status, image: place.image, details: place.details });
     setShowPlaceForm(true);
   }
+
   function closePlaceForm() {
     setShowPlaceForm(false);
     setEditingPlaceId(null);
   }
-  function submitPlaceForm(e) {
+
+  async function submitPlaceForm(e) {
     e.preventDefault();
-    const data = {
-      ...placeForm,
+    const dataToSave = {
       name: placeForm.name.trim(),
+      category: placeForm.category,
+      status: placeForm.status,
       image: placeForm.image.trim() || 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400',
       details: placeForm.details.trim(),
     };
 
-    // TODO: استبدل هذا بنداء API حقيقي (POST للإضافة / PUT للتعديل عبر Supabase)
     if (editingPlaceId) {
-      setPlaces((prev) => prev.map((p) => (p.id === editingPlaceId ? { ...p, ...data } : p)));
-      showToast('تم تحديث بيانات المعلم بنجاح');
+      // تعديل
+      const { error } = await supabase.from('places').update(dataToSave).eq('id', editingPlaceId);
+      if (!error) {
+        setPlaces((prev) => prev.map((p) => (p.id === editingPlaceId ? { ...p, ...dataToSave } : p)));
+        showToast('تم تحديث بيانات المعلم بنجاح');
+      } else {
+        showToast('حدث خطأ أثناء التحديث');
+      }
     } else {
-      setPlaces((prev) => [...prev, { id: Date.now(), ...data }]);
-      showToast('تمت إضافة المعلم بنجاح');
+      // إضافة
+      const { data: newPlace, error } = await supabase.from('places').insert([dataToSave]).select();
+      if (!error && newPlace) {
+        setPlaces((prev) => [...prev, newPlace[0]]);
+        showToast('تمت إضافة المعلم بنجاح');
+      } else {
+        showToast('حدث خطأ أثناء الإضافة');
+      }
     }
     closePlaceForm();
   }
 
   /* ---------- الذاكرة: نشر ---------- */
   function approveMemory(id) {
-    // TODO: PATCH memories/:id { approved: true }
     setMemories((prev) => prev.map((m) => (m.id === id ? { ...m, approved: true } : m)));
     showToast('تم نشر الذكرى');
   }
@@ -172,14 +193,23 @@ export default function DashboardPage() {
   function askDelete(type, id) {
     setConfirmTarget({ type, id });
   }
-  function confirmDelete() {
+
+  async function confirmDelete() {
     if (!confirmTarget) return;
     const { type, id } = confirmTarget;
-    // TODO: استبدل كل حالة بنداء DELETE فعلي إلى Supabase
-    if (type === 'place') setPlaces((prev) => prev.filter((p) => p.id !== id));
+
+    if (type === 'place') {
+      const { error } = await supabase.from('places').delete().eq('id', id);
+      if (!error) setPlaces((prev) => prev.filter((p) => p.id !== id));
+    }
+    if (type === 'admin') {
+      const { error } = await supabase.from('admins').delete().eq('id', id);
+      if (!error) setAdmins((prev) => prev.filter((a) => a.id !== id));
+    }
     if (type === 'heritage') setHeritageItems((prev) => prev.filter((h) => h.id !== id));
     if (type === 'memory') setMemories((prev) => prev.filter((m) => m.id !== id));
     if (type === 'feedback') setFeedbacks((prev) => prev.filter((f) => f.id !== id));
+    
     showToast('تم الحذف بنجاح');
     setConfirmTarget(null);
   }
@@ -369,6 +399,7 @@ export default function DashboardPage() {
                         <th className="px-4 py-3 font-bold">البريد الإلكتروني</th>
                         <th className="px-4 py-3 font-bold">الدور</th>
                         <th className="px-4 py-3 font-bold">الحالة</th>
+                        <th className="px-4 py-3 font-bold">إجراءات</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -381,6 +412,13 @@ export default function DashboardPage() {
                             <span className={`${styles.badge} ${a.active ? styles.badgeOnline : styles.badgeOffline}`}>
                               <span className={styles.badgeDot} />{a.active ? 'نشط' : 'غير نشط'}
                             </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              {/* يمكنك إضافة دالة تعديل المستخدم لاحقاً */}
+                              <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnIcon}`} title="تعديل"><IconEdit /></button>
+                              <button className={`${styles.btn} ${styles.btnClay} ${styles.btnIcon}`} title="حذف" onClick={() => askDelete('admin', a.id)}><IconTrash /></button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -488,7 +526,6 @@ export default function DashboardPage() {
               <section className="space-y-5">
                 <div className="flex items-center justify-between">
                   <h1 className="text-xl font-extrabold">عادات وتقاليد ولاية الوادي</h1>
-                  {/* TODO: افتح نموذج إضافة عنصر تراثي (نفس نمط نموذج المعالم: صورة + نص) */}
                   <button onClick={() => showToast('افتح نموذج إضافة عنصر تراثي (يُربط لاحقاً بالخلفية)')} className={`${styles.btn} ${styles.btnOasis}`}>＋ إضافة عنصر تراثي</button>
                 </div>
                 {heritageItems.length ? (
