@@ -339,3 +339,4 @@ export default function DashboardPage() {
                 <div>
                   <h2 className="text-xl font-black text-[#0F172A]">التوثيق التراثي</h2>
                   <p className="text-sm text-[#64748B] mt-1">إدارة عناصر عادات وتقاليد الوادي</p>
+ 
