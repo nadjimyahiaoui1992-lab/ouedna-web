@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
-// إعداد الاتصال بقاعدة بيانات Supabase
+// إعداد الاتصال بقاعدة بيانات Supabase (نسخة متوافقة مع الـ middleware عبر cookies)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createBrowserClient(supabaseUrl, supabaseKey);
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -34,6 +34,7 @@ export default function LoginPage() {
       } else {
         // توجيه المستخدم إلى لوحة التحكم بعد نجاح الدخول
         router.push("/admin/dashboard");
+        router.refresh();
       }
     } catch (err) {
       // التقاط أي خطأ غير متوقع وإيقاف تعليق الزر
