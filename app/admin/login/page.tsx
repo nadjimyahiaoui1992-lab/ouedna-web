@@ -1,13 +1,46 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
+
+// إعداد الاتصال بقاعدة بيانات Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault(); // منع إعادة تحميل الصفحة الافتراضي
+    setLoading(true);
+    setErrorMsg("");
+
+    // إرسال البيانات للتحقق منها في Supabase
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+
+    if (error) {
+      setErrorMsg("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
+      setLoading(false);
+    } else {
+      // توجيه المستخدم إلى لوحة التحكم بعد نجاح الدخول
+      router.push("/admin/dashboard");
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1542601098-8fc114e148e2?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center bg-no-repeat p-4 relative">
       
-      {/* طبقة شفافة داكنة (Overlay) فوق الصورة لتوضيح صندوق الدخول */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
 
-      {/* صندوق تسجيل الدخول بتصميم زجاجي (Glassmorphism) */}
       <div className="relative bg-white/85 backdrop-blur-lg p-8 rounded-3xl shadow-2xl border border-white/20 w-full max-w-md z-10">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
@@ -18,13 +51,23 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+        {/* عرض رسالة الخطأ هنا إن وجدت */}
+        {errorMsg && (
+          <div className="mb-6 p-3 bg-red-100/90 border border-red-200 text-red-700 text-sm rounded-xl text-right rtl">
+            {errorMsg}
+          </div>
+        )}
+
+        <form className="space-y-6" onSubmit={handleLogin}>
           <div>
             <label className="block text-sm font-bold text-gray-800 mb-2 text-right">
               البريد الإلكتروني
             </label>
             <input 
               type="email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
               className="w-full px-4 py-3 border border-gray-300/50 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all bg-white/90 shadow-sm"
               placeholder="admin@souf360.com"
               dir="ltr"
@@ -37,6 +80,9 @@ export default function LoginPage() {
             </label>
             <input 
               type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
               className="w-full px-4 py-3 border border-gray-300/50 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all bg-white/90 shadow-sm"
               placeholder="••••••••"
               dir="ltr"
@@ -45,12 +91,17 @@ export default function LoginPage() {
 
           <button 
             type="submit" 
-            className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-[1.02] mt-6"
+            disabled={loading}
+            className={`w-full text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transform transition-all duration-200 mt-6 ${
+              loading 
+                ? "bg-amber-400 cursor-not-allowed" 
+                : "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 hover:scale-[1.02]"
+            }`}
           >
-            دخول إلى لوحة التحكم
+            {loading ? "جاري تسجيل الدخول..." : "دخول إلى لوحة التحكم"}
           </button>
         </form>
       </div>
     </div>
   );
-}
+        }
