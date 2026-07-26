@@ -4,11 +4,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   MapPin, Phone, Mail, Clock, Star, ChevronLeft, ChevronRight,
-  ArrowRight, Landmark, Tent, Camera, Quote, Sun, ImageIcon,
-  Sparkles, Heart, Bookmark
+  ArrowRight, Landmark, Tent, Camera, Quote, ImageIcon,
+  Sparkles, Heart, Bookmark, Menu, X, Search, Compass,
 } from 'lucide-react';
 
-// --- أيقونات التواصل الاجتماعي (SVG مضمّنة، لا تعتمد على إصدار lucide-react) ---
+// =====================================================================================
+// أيقونات التواصل الاجتماعي (SVG مضمّنة، لا تعتمد على إصدار lucide-react)
+// =====================================================================================
 const FacebookIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94Z"/></svg>
 );
@@ -22,7 +24,45 @@ const XIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-6.9l-5.4-6.6L4.7 22H1.6l8.1-9.3L1 2h7.1l4.9 6.1L18.9 2Zm-1.2 18h1.9L7.4 3.9H5.4L17.7 20Z"/></svg>
 );
 
-// --- Types ---
+// =====================================================================================
+// الشعار — هوية بصرية مخصّصة لسوف 360: قوس شمس فوق قبّة (عمارة "الڨطاية" التقليدية
+// المميزة لولاية الوادي) وموجة كثيب رملي أسفلها، بتدرّج ذهبي/فيروزي.
+// =====================================================================================
+const BrandLogo = ({ size = 44 }: { size?: number }) => (
+  <div className="relative shrink-0" style={{ width: size, height: size }}>
+    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_12px_rgba(245,158,11,0.35)]">
+      <defs>
+        <linearGradient id="souf-gold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fcd34d" />
+          <stop offset="100%" stopColor="#d97706" />
+        </linearGradient>
+        <linearGradient id="souf-teal" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#2dd4bf" />
+          <stop offset="100%" stopColor="#0f766e" />
+        </linearGradient>
+      </defs>
+      <circle cx="50" cy="50" r="47" fill="#050b0d" stroke="url(#souf-gold)" strokeWidth="2" />
+      <path d="M16 54 A34 34 0 0 1 84 54" fill="none" stroke="url(#souf-gold)" strokeWidth="3.5" strokeLinecap="round" />
+      <path d="M8 70 Q26 57 50 70 T92 70" fill="none" stroke="url(#souf-teal)" strokeWidth="3.5" strokeLinecap="round" />
+      <path d="M36 63 Q36 42 50 42 Q64 42 64 63 Z" fill="url(#souf-gold)" />
+      <rect x="47" y="35" width="6" height="9" rx="2" fill="url(#souf-gold)" />
+      <circle cx="50" cy="30" r="2.6" fill="url(#souf-gold)" />
+    </svg>
+  </div>
+);
+
+// خط قباب متكرر (زخرفة توقيعية) يُستخدم كفاصل بين الأقسام بدل الفواصل الخطية التقليدية
+const DomeDivider = ({ className = '', tone = '#0b1619' }: { className?: string; tone?: string }) => (
+  <div className={`w-full overflow-hidden leading-none pointer-events-none select-none ${className}`} aria-hidden="true">
+    <svg viewBox="0 0 240 22" preserveAspectRatio="none" className="w-full h-4 sm:h-6" style={{ color: tone }}>
+      <path d="M0 22 L0 15 Q10 3 20 15 Q30 3 40 15 Q50 3 60 15 Q70 3 80 15 Q90 3 100 15 Q110 3 120 15 Q130 3 140 15 Q150 3 160 15 Q170 3 180 15 Q190 3 200 15 Q210 3 220 15 Q230 3 240 15 L240 22 Z" fill="currentColor" />
+    </svg>
+  </div>
+);
+
+// =====================================================================================
+// Types
+// =====================================================================================
 type Place = {
   id: string | number; name: string; category?: string; description?: string;
   cover_url?: any; image_url?: any; gallery?: any; lat?: number; lng?: number;
@@ -35,7 +75,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const HERO_IMG = 'https://images.unsplash.com/photo-1628491097588-638300689372?q=80&w=2000&auto=format&fit=crop';
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1542601098-8fc114e148e2?q=80&w=800&auto=format&fit=crop';
 
-// --- دوال تحليل الصور من قاعدة البيانات ---
+// =====================================================================================
+// دوال تحليل الصور القادمة من قاعدة البيانات (Supabase Storage) — بدون تغيير في المنطق
+// =====================================================================================
 function parseImages(input: any): string[] {
   if (!input) return [];
   if (Array.isArray(input)) return input.map((item) => String(item).replace(/["'[\]]/g, '').trim()).filter(Boolean);
@@ -80,7 +122,6 @@ const TRADITION_IMAGES = [
 
 const STARS = [1, 2, 3, 4, 5];
 
-// صور رمزية للبطاقات التجريبية (ذكريات وآراء الزوار) عند غياب بيانات من قاعدة البيانات
 const MEMORY_AVATARS = [
   'https://i.pravatar.cc/150?img=47',
   'https://i.pravatar.cc/150?img=12',
@@ -94,16 +135,22 @@ const TESTIMONIAL_AVATARS = [
   'https://i.pravatar.cc/150?img=48',
 ];
 
-// --- الترجمات ---
+// =====================================================================================
+// الترجمات
+// =====================================================================================
 const translations: Record<Lang, any> = {
   ar: {
     dir: 'rtl',
-    nav: { contact: 'اتصل بنا', about: 'من نحن', home: 'الرئيسية', tagline: 'منصة سياحية ذكية لولاية الوادي' },
+    nav: { contact: 'اتصل بنا', about: 'المعالم', home: 'الرئيسية', tagline: 'منصة سياحية ذكية لولاية الوادي', menu: 'القائمة' },
+    search: { placeholder: 'ابحث عن معلم، واحة أو منطقة...', btn: 'بحث' },
     hero: {
+      eyebrow: 'مدينة الألف قبة',
       title: 'اكتشف سحر ولاية الوادي',
       subtitle: 'حيث تلتقي الطبيعة الخلابة بالتراث العريق',
       paragraph: 'ولاية الوادي، جوهرة الجنوب الجزائري، تزخر بمناظر طبيعية خلابة كالكثبان الرملية والواحات الخضراء، وتتميز بتاريخ عريق وثقافة أصيلة تجعلها وجهة سياحية فريدة من نوعها.',
+      cta1: 'استكشف المعالم', cta2: 'شاهد الخريطة',
     },
+    stats: { places: 'معلم سياحي', memories: 'ذكرى أرشيفية', testimonials: 'رأي زائر' },
     services: [
       { title: 'طبيعة خلابة', desc: 'كثبان رملية ذهبية وواحات خضراء ساحرة' },
       { title: 'تراث عريق', desc: 'معالم تاريخية عريقة وقصور صحراوية' },
@@ -119,7 +166,7 @@ const translations: Record<Lang, any> = {
       hours: 'ساعات العمل', hoursValue: 'حسب الإدارة المحلية',
       mapBtn: 'موقع المعلم على الخريطة', directionsBtn: 'الاتجاهات (مسار)', gallery: 'معرض الصور',
       defaultDesc: 'لا يوجد وصف متاح لهذا المعلم في قاعدة البيانات حالياً.',
-      viewDetails: 'عرض التفاصيل', defaultPlaceCategory: 'سياحة',
+      viewDetails: 'عرض التفاصيل', defaultPlaceCategory: 'سياحة', featured: 'الأكثر زيارة',
     },
     traditions: {
       title: 'عادات وتقاليد ولاية الوادي', showAll: 'عرض الكل',
@@ -163,12 +210,16 @@ const translations: Record<Lang, any> = {
   },
   fr: {
     dir: 'ltr',
-    nav: { contact: 'Contactez-nous', about: 'À propos', home: 'Accueil', tagline: "Plateforme touristique intelligente d'El Oued" },
+    nav: { contact: 'Contactez-nous', about: 'Sites', home: 'Accueil', tagline: "Plateforme touristique intelligente d'El Oued", menu: 'Menu' },
+    search: { placeholder: 'Rechercher un site, une oasis...', btn: 'Rechercher' },
     hero: {
+      eyebrow: 'La ville aux mille coupoles',
       title: "Découvrez la magie de la wilaya d'El Oued",
       subtitle: 'Où la nature magnifique rencontre le patrimoine authentique',
       paragraph: "La wilaya d'El Oued, joyau du sud algérien, regorge de paysages naturels magnifiques tels que les dunes de sable et les oasis verdoyantes, et se distingue par une histoire ancienne et une culture authentique qui en font une destination touristique unique en son genre.",
+      cta1: 'Explorer les sites', cta2: 'Voir la carte',
     },
+    stats: { places: 'sites touristiques', memories: 'souvenirs archivés', testimonials: "avis de visiteurs" },
     services: [
       { title: 'Nature magnifique', desc: 'Dunes de sable doré et oasis verdoyantes enchanteresses' },
       { title: 'Patrimoine ancestral', desc: 'Sites historiques anciens et palais du désert' },
@@ -184,14 +235,14 @@ const translations: Record<Lang, any> = {
       hours: "Heures d'ouverture", hoursValue: "Selon l'administration locale",
       mapBtn: 'Localiser sur la carte', directionsBtn: 'Itinéraire', gallery: 'Galerie photos',
       defaultDesc: "Aucune description disponible pour ce site pour le moment.",
-      viewDetails: 'Voir les détails', defaultPlaceCategory: 'Tourisme',
+      viewDetails: 'Voir les détails', defaultPlaceCategory: 'Tourisme', featured: 'Le plus visité',
     },
     traditions: {
       title: "Coutumes et traditions d'El Oued", showAll: 'Tout afficher',
       items: [
-        { title: 'Costume traditionnel du désert', desc: 'Un costume authentique reflétant l\'identité et le patrimoine de la région' },
+        { title: 'Costume traditionnel du désert', desc: "Un costume authentique reflétant l'identité et le patrimoine de la région" },
         { title: 'Bijouterie en argent', desc: "Un artisanat traditionnel transmis dans la fabrication des bijoux en argent" },
-        { title: 'Festival touristique d\'El Oued', desc: 'Une célébration annuelle reflétant la culture et le patrimoine local' },
+        { title: "Festival touristique d'El Oued", desc: 'Une célébration annuelle reflétant la culture et le patrimoine local' },
         { title: 'Plats traditionnels', desc: 'Des plats savoureux reflétant le goût authentique de la région' },
         { title: 'Art du henné', desc: 'Une parure traditionnelle aux symboles et significations magnifiques' },
       ],
@@ -228,12 +279,16 @@ const translations: Record<Lang, any> = {
   },
   en: {
     dir: 'ltr',
-    nav: { contact: 'Contact Us', about: 'About Us', home: 'Home', tagline: 'Smart tourism platform for El Oued Province' },
+    nav: { contact: 'Contact Us', about: 'Landmarks', home: 'Home', tagline: 'Smart tourism platform for El Oued Province', menu: 'Menu' },
+    search: { placeholder: 'Search a landmark, an oasis...', btn: 'Search' },
     hero: {
+      eyebrow: 'The City of a Thousand Domes',
       title: 'Discover the Magic of El Oued Province',
       subtitle: 'Where stunning nature meets rich heritage',
       paragraph: 'El Oued Province, the jewel of southern Algeria, is rich with breathtaking landscapes such as golden sand dunes and green oases, and stands out with an ancient history and authentic culture that make it a truly unique tourist destination.',
+      cta1: 'Explore Landmarks', cta2: 'View Map',
     },
+    stats: { places: 'tourist sites', memories: 'archived memories', testimonials: 'visitor reviews' },
     services: [
       { title: 'Stunning Nature', desc: 'Golden sand dunes and enchanting green oases' },
       { title: 'Ancient Heritage', desc: 'Ancient historical landmarks and desert palaces' },
@@ -249,7 +304,7 @@ const translations: Record<Lang, any> = {
       hours: 'Working Hours', hoursValue: 'As per local administration',
       mapBtn: 'Locate on Map', directionsBtn: 'Directions', gallery: 'Photo Gallery',
       defaultDesc: 'No description is available for this landmark yet.',
-      viewDetails: 'View Details', defaultPlaceCategory: 'Tourism',
+      viewDetails: 'View Details', defaultPlaceCategory: 'Tourism', featured: 'Most Visited',
     },
     traditions: {
       title: 'Customs and Traditions of El Oued', showAll: 'Show All',
@@ -293,11 +348,16 @@ const translations: Record<Lang, any> = {
   },
 };
 
+// =====================================================================================
+// المكوّن الرئيسي
+// =====================================================================================
 export default function ExploreClient({ places = [], oldMemories = [], testimonials = [] }: { places?: Place[], oldMemories?: OldMemory[], testimonials?: Testimonial[] }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showAllPlaces, setShowAllPlaces] = useState(false);
   const [lang, setLang] = useState<Lang>('ar');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
   const memoriesTrackRef = useRef<HTMLDivElement>(null);
 
@@ -305,16 +365,22 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
   const dir = t.dir;
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50);
+    const handleScroll = () => setIsScrolled(window.scrollY > 40);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // إغلاق قائمة الجوال تلقائياً عند تغيير حجم الشاشة إلى سطح مكتب
+  useEffect(() => {
+    const handleResize = () => { if (window.innerWidth >= 1024) setIsMenuOpen(false); };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const scrollMemories = (side: 'start' | 'end') => {
     const el = memoriesTrackRef.current;
     if (!el) return;
     const amount = el.clientWidth * 0.8;
-    // في RTL: "start" يعني اليمين، في LTR: "start" يعني اليسار
     const sign = dir === 'rtl' ? (side === 'start' ? 1 : -1) : (side === 'start' ? -1 : 1);
     el.scrollBy({ left: amount * sign, behavior: 'smooth' });
   };
@@ -329,7 +395,6 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
 
   const safeActiveIndex = totalImages > 0 ? activeImageIndex % totalImages : 0;
   const coverImg = featuredImages[safeActiveIndex] || FALLBACK_IMG;
-  // الصور المصغّرة: كل الصور عدا الصورة المعروضة حاليًا، بدءًا من التي تليها
   const thumbOrder = Array.from({ length: totalImages }, (_, i) => (safeActiveIndex + 1 + i) % totalImages)
     .filter((i) => i !== safeActiveIndex);
   const thumbs = thumbOrder.slice(0, 3).map((i) => ({ img: featuredImages[i], index: i }));
@@ -349,20 +414,37 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
     { code: 'ar', label: 'العربية', tag: 'DZ', tagBg: 'bg-emerald-700' },
   ];
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    router.push(q ? `/map?destination=${encodeURIComponent(q)}` : '/map');
+  };
+
+  const NAV_ITEMS = [
+    { href: '#top', label: t.nav.home },
+    { href: '#landmarks', label: t.nav.about },
+    { href: '#footer', label: t.nav.contact },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#070d10] text-white font-sans selection:bg-amber-500/30 overflow-x-hidden" dir={dir}>
+    <div id="top" className="min-h-screen bg-[#070d10] text-white font-sans selection:bg-amber-500/30 overflow-x-hidden" dir={dir}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap');
         * { font-family: 'Tajawal', sans-serif; }
+        .font-display { font-family: 'Cairo', 'Tajawal', sans-serif; }
         .memories-track::-webkit-scrollbar { display: none; }
         .memories-track { scrollbar-width: none; -ms-overflow-style: none; }
         .container { width: 100%; max-width: 1280px; margin-left: auto; margin-right: auto; }
+        html { scroll-behavior: smooth; }
+        @keyframes driftSlow { 0% { transform: translateX(0); } 100% { transform: translateX(-33.333%); } }
+        .drift-bg { animation: driftSlow 60s linear infinite; }
+        @media (prefers-reduced-motion: reduce) { .drift-bg { animation: none; } }
       `}</style>
 
-      {/* --- القائمة العلوية --- */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled ? 'bg-[#050b0d]/95 backdrop-blur-md shadow-lg border-b border-white/5' : 'bg-gradient-to-b from-black/60 to-transparent'}`}>
+      {/* ============================= القائمة العلوية ============================= */}
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled ? 'bg-[#050b0d]/95 backdrop-blur-md shadow-lg border-b border-white/5' : 'bg-gradient-to-b from-black/70 to-transparent'}`}>
         {/* شريط اللغات */}
-        <div className={`container mx-auto px-4 sm:px-6 flex items-center overflow-hidden transition-all duration-500 ${isScrolled ? 'h-0 opacity-0' : 'h-8 opacity-100'}`}>
+        <div className={`container mx-auto px-4 sm:px-6 flex items-center justify-between overflow-hidden transition-all duration-500 ${isScrolled ? 'h-0 opacity-0' : 'h-9 opacity-100'}`}>
           <div className="flex items-center gap-3 sm:gap-5 text-[10px] sm:text-[11px] font-bold text-gray-200 leading-none">
             {LANGS.map((l) => (
               <button
@@ -376,58 +458,151 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
               </button>
             ))}
           </div>
+          <div className="hidden sm:flex items-center gap-2.5 text-gray-400">
+            <a href="#" aria-label="Facebook" className="hover:text-amber-400 transition-colors"><FacebookIcon size={13} /></a>
+            <a href="#" aria-label="Instagram" className="hover:text-amber-400 transition-colors"><InstagramIcon size={13} /></a>
+            <a href="#" aria-label="YouTube" className="hover:text-amber-400 transition-colors"><YoutubeIcon size={13} /></a>
+          </div>
         </div>
 
         {/* الشريط الرئيسي */}
-        <div className={`container mx-auto px-4 sm:px-6 flex justify-between items-center ${isScrolled ? 'py-3' : 'py-4'}`}>
-          <div className="hidden lg:flex items-center gap-10 text-sm font-bold text-gray-200">
-            <a href="#" className="hover:text-amber-400 transition-colors">{t.nav.contact}</a>
-            <a href="#" className="hover:text-amber-400 transition-colors">{t.nav.about}</a>
-            <a href="#" className="text-amber-500 border-b-2 border-amber-500 pb-1">{t.nav.home}</a>
+        <div className={`container mx-auto px-4 sm:px-6 flex justify-between items-center ${isScrolled ? 'py-2.5' : 'py-3.5'}`}>
+          <div className="flex items-center gap-3">
+            <BrandLogo size={isScrolled ? 40 : 46} />
+            <div>
+              <h1 className="text-lg sm:text-xl font-display font-black tracking-tight leading-none">سوف <span className="text-amber-500">360</span></h1>
+              <p className="text-[9px] text-gray-400 font-medium mt-0.5 hidden sm:block">{t.nav.tagline}</p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-xl font-black tracking-tight flex items-center gap-1">سوف <span className="text-amber-500">360</span></h1>
-              <p className="text-[9px] text-gray-400 font-medium">{t.nav.tagline}</p>
-            </div>
-            <div className="w-11 h-11 bg-gradient-to-tr from-teal-600 to-amber-500 rounded-full flex items-center justify-center p-1">
-              <div className="w-full h-full bg-[#050b0d] rounded-full flex items-center justify-center">
-                <Sun size={20} className="text-amber-500" />
-              </div>
-            </div>
+          <div className="hidden lg:flex items-center gap-9 text-sm font-bold text-gray-200">
+            {NAV_ITEMS.map((item, i) => (
+              <a key={i} href={item.href} className={i === 0 ? 'text-amber-500 border-b-2 border-amber-500 pb-1' : 'hover:text-amber-400 transition-colors'}>
+                {item.label}
+              </a>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push('/map')}
+              className="hidden sm:flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-5 py-2.5 rounded-xl transition-colors shadow-lg shadow-amber-500/10"
+            >
+              <Compass size={15} /> {t.hero.cta2}
+            </button>
+            <button
+              onClick={() => setIsMenuOpen(true)}
+              className="lg:hidden w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center"
+              aria-label={t.nav.menu}
+            >
+              <Menu size={20} />
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* --- الهيرو --- */}
-      <section className="relative flex flex-col justify-center items-center pt-32 pb-16 sm:pt-40 sm:pb-20 min-h-[560px] sm:min-h-[640px] md:min-h-[720px]">
+      {/* قائمة الجوال المنسدلة */}
+      <div className={`fixed inset-0 z-[60] lg:hidden transition-opacity duration-300 ${isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
+        <div className={`absolute top-0 ${dir === 'rtl' ? 'right-0' : 'left-0'} h-full w-[80%] max-w-xs bg-[#0b1619] border-white/5 ${dir === 'rtl' ? 'border-l' : 'border-r'} p-6 flex flex-col transition-transform duration-300 ${isMenuOpen ? 'translate-x-0' : dir === 'rtl' ? 'translate-x-full' : '-translate-x-full'}`}>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-2.5">
+              <BrandLogo size={36} />
+              <h2 className="text-base font-display font-black">سوف <span className="text-amber-500">360</span></h2>
+            </div>
+            <button onClick={() => setIsMenuOpen(false)} className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center"><X size={18} /></button>
+          </div>
+          <div className="flex flex-col gap-1 text-sm font-bold text-gray-200">
+            {NAV_ITEMS.map((item, i) => (
+              <a key={i} href={item.href} onClick={() => setIsMenuOpen(false)} className="py-3 px-3 rounded-xl hover:bg-white/5 hover:text-amber-400 transition-colors">
+                {item.label}
+              </a>
+            ))}
+          </div>
+          <button
+            onClick={() => { setIsMenuOpen(false); router.push('/map'); }}
+            className="mt-6 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm px-5 py-3 rounded-xl transition-colors"
+          >
+            <Compass size={16} /> {t.hero.cta2}
+          </button>
+          <div className="mt-auto flex items-center gap-4 justify-center text-gray-400 pt-6 border-t border-white/5">
+            <a href="#" aria-label="Facebook" className="hover:text-amber-400"><FacebookIcon size={16} /></a>
+            <a href="#" aria-label="Instagram" className="hover:text-amber-400"><InstagramIcon size={16} /></a>
+            <a href="#" aria-label="YouTube" className="hover:text-amber-400"><YoutubeIcon size={16} /></a>
+            <a href="#" aria-label="X" className="hover:text-amber-400"><XIcon size={16} /></a>
+          </div>
+        </div>
+      </div>
+
+      {/* ============================= الهيرو ============================= */}
+      <section className="relative flex flex-col justify-center items-center pt-28 pb-14 sm:pt-36 sm:pb-16 min-h-[620px] sm:min-h-[680px] md:min-h-[760px]">
         <div className="absolute inset-0 z-0">
           <img src={HERO_IMG} alt="غروب الشمس في الوادي" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#070d10]/70 via-[#070d10]/40 to-[#070d10]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#070d10]/75 via-[#070d10]/50 to-[#070d10]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#070d10] via-transparent to-transparent" />
         </div>
 
         <div className="relative z-10 container mx-auto px-4 sm:px-6 flex flex-col items-center text-center max-w-4xl">
-          <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 drop-shadow-2xl text-white leading-tight">{t.hero.title}</h2>
-          <h3 className="text-base sm:text-xl md:text-2xl text-amber-400 font-bold mb-8">{t.hero.subtitle}</h3>
+          <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/15 text-amber-300 text-[11px] sm:text-xs font-bold px-4 py-1.5 rounded-full mb-5">
+            <Sparkles size={13} /> {t.hero.eyebrow}
+          </span>
+          <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-black mb-4 drop-shadow-2xl text-white leading-tight">{t.hero.title}</h2>
+          <h3 className="text-base sm:text-xl md:text-2xl text-amber-400 font-bold mb-7">{t.hero.subtitle}</h3>
 
-          <div className="bg-black/25 backdrop-blur-sm border border-white/15 rounded-2xl px-5 py-5 sm:px-10 sm:py-6">
+          <div className="bg-black/25 backdrop-blur-sm border border-white/15 rounded-2xl px-5 py-5 sm:px-10 sm:py-6 mb-8">
             <p className="text-gray-200 max-w-2xl text-sm md:text-base leading-loose">
               {t.hero.paragraph}
             </p>
           </div>
+
+          {/* شريط بحث سريع يوجّه إلى صفحة الخريطة */}
+          <form onSubmit={handleSearchSubmit} className="w-full max-w-xl flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-2 mb-8 shadow-2xl">
+            <Search size={18} className="text-gray-300 shrink-0 mx-2" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t.search.placeholder}
+              className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-gray-400 min-w-0"
+            />
+            <button type="submit" className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs sm:text-sm px-4 sm:px-6 py-2.5 rounded-xl transition-colors shrink-0">
+              {t.search.btn}
+            </button>
+          </form>
+
+          <div className="flex items-center gap-4 sm:gap-6">
+            <button
+              onClick={() => document.getElementById('landmarks')?.scrollIntoView({ behavior: 'smooth' })}
+              className="bg-amber-500 hover:bg-amber-400 text-black font-bold py-3.5 px-7 rounded-2xl transition-all shadow-lg shadow-amber-500/20 text-sm flex items-center gap-2"
+            >
+              {t.hero.cta1} <ArrowRight size={16} className={dir === 'rtl' ? 'rotate-180' : ''} />
+            </button>
+          </div>
+
+          {/* إحصائيات حقيقية من قاعدة البيانات */}
+          <div className="grid grid-cols-3 gap-3 sm:gap-6 mt-10 w-full max-w-lg">
+            {[
+              { value: places.length, label: t.stats.places },
+              { value: oldMemories.length, label: t.stats.memories },
+              { value: testimonials.length, label: t.stats.testimonials },
+            ].map((s, i) => (
+              <div key={i} className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl py-4 px-2">
+                <p className="text-2xl sm:text-3xl font-display font-black text-amber-400">{s.value}+</p>
+                <p className="text-[10px] sm:text-[11px] text-gray-300 font-bold mt-1 leading-snug">{s.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* --- بطاقات الخدمات --- */}
-      <section className="relative z-20 bg-[#070d10] px-4 sm:px-6 -mt-10 sm:-mt-14">
+      {/* ============================= بطاقات الخدمات ============================= */}
+      <section className="relative z-20 bg-[#070d10] px-4 sm:px-6 -mt-8 sm:-mt-12">
         <div className="container mx-auto">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             {[Tent, Landmark, Sparkles, Heart, Camera].map((Icon, i) => {
               const srv = t.services[i];
               const active = i === 0;
               return (
-                <div key={i} className={`bg-[#0b1619]/90 backdrop-blur-xl border rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 flex flex-col items-center text-center transition-transform hover:-translate-y-2 cursor-pointer ${active ? 'border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.15)]' : 'border-white/10'} ${i === 4 ? 'col-span-2 sm:col-span-1' : ''}`}>
+                <div key={i} className={`bg-[#0b1619]/90 backdrop-blur-xl border rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 flex flex-col items-center text-center transition-all hover:-translate-y-2 hover:shadow-2xl cursor-pointer ${active ? 'border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.15)]' : 'border-white/10'} ${i === 4 ? 'col-span-2 sm:col-span-1' : ''}`}>
                   <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center mb-3 sm:mb-4 border ${active ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-white/5 text-gray-400 border-white/10'}`}>
                     <Icon size={24} strokeWidth={1.5} />
                   </div>
@@ -441,22 +616,22 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
         </div>
       </section>
 
-      {/* --- المعالم (ديناميكي) --- */}
+      {/* ============================= المعالم (ديناميكي) ============================= */}
       <section className="pt-16 pb-20 relative z-10 bg-[#070d10]" id="landmarks">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex justify-between items-end mb-10">
+          <div className="flex justify-between items-end mb-10 gap-4">
             <div>
               <div className="flex items-center gap-2 text-amber-500 mb-2">
-                <MapPin size={24} />
+                <MapPin size={22} />
                 <span className="text-xs font-bold uppercase tracking-wider">{t.landmarks.label}</span>
               </div>
-              <h2 className="text-3xl font-black text-white">{t.landmarks.title}</h2>
-              <p className="text-gray-400 text-sm mt-2">{t.landmarks.desc}</p>
+              <h2 className="text-2xl sm:text-3xl font-display font-black text-white">{t.landmarks.title}</h2>
+              <p className="text-gray-400 text-sm mt-2 max-w-lg">{t.landmarks.desc}</p>
             </div>
             {places.length > 1 && (
               <button
                 onClick={() => setShowAllPlaces(!showAllPlaces)}
-                className="px-6 py-2.5 rounded-full border border-white/20 text-xs font-bold hover:bg-white/10 transition-colors hidden sm:flex items-center gap-2"
+                className="px-6 py-2.5 rounded-full border border-white/20 text-xs font-bold hover:bg-white/10 hover:border-amber-500/40 transition-colors hidden sm:flex items-center gap-2 shrink-0"
               >
                 {showAllPlaces ? t.landmarks.hideAll : t.landmarks.showAll} <ChevronLeft size={16} className={dir === 'ltr' ? 'rotate-180' : ''} />
               </button>
@@ -469,19 +644,23 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
               <p className="text-gray-400 font-bold">{t.landmarks.empty}</p>
             </div>
           ) : (
-            <div className="bg-[#0b1619] rounded-[3rem] border border-white/5 p-4 sm:p-6 flex flex-col lg:flex-row gap-8 shadow-2xl relative overflow-hidden mb-8">
+            <div className="bg-[#0b1619] rounded-[2rem] sm:rounded-[3rem] border border-white/5 p-4 sm:p-6 flex flex-col lg:flex-row gap-8 shadow-2xl relative overflow-hidden mb-8">
               <div className="lg:w-1/2 flex flex-col justify-center px-2 py-4 lg:py-8 order-2 lg:order-1">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 text-amber-500">
                     <Landmark size={18} />
                     <span className="text-xs font-bold uppercase tracking-wider">{featuredPlace.category || t.landmarks.defaultCategory}</span>
                   </div>
-                  <button className="w-10 h-10 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center text-gray-400 hover:text-amber-500 transition-colors">
+                  <button className="w-10 h-10 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center text-gray-400 hover:text-amber-500 hover:border-amber-500/30 transition-colors">
                     <Heart size={18} />
                   </button>
                 </div>
 
-                <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-3 text-white">{featuredPlace.name}</h3>
+                <span className="inline-flex w-fit items-center gap-1.5 bg-amber-500/10 text-amber-400 text-[10px] font-bold px-3 py-1 rounded-full mb-3 border border-amber-500/20">
+                  <Star size={11} fill="currentColor" /> {t.landmarks.featured}
+                </span>
+
+                <h3 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black mb-3 text-white">{featuredPlace.name}</h3>
 
                 <div className="flex items-center gap-1 text-amber-400 mb-6">
                   <span className="font-bold text-xl ml-2">4.8</span>
@@ -541,7 +720,7 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
                 </div>
               </div>
 
-              <div className="lg:w-1/2 relative rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden min-h-[260px] sm:min-h-[340px] lg:min-h-[420px] order-1 lg:order-2 group">
+              <div className="lg:w-1/2 relative rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden min-h-[260px] sm:min-h-[340px] lg:min-h-[420px] order-1 lg:order-2 group">
                 <img src={coverImg} alt={featuredPlace.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#070d10]/90 via-transparent to-transparent" />
 
@@ -576,18 +755,11 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
                       <button
                         type="button"
                         onClick={nextImage}
-                        className="w-16 h-16 rounded-xl border-2 border-white/20 bg-black/70 flex items-center justify-center font-bold text-sm cursor-pointer hover:border-amber-500 transition-colors text-white backdrop-blur-sm shrink-0"
+                        className="w-8 h-8 rounded-full bg-black/50 border border-white/20 flex items-center justify-center text-white hover:border-amber-500 transition-colors shrink-0 text-[10px] font-bold"
                       >
                         +{remainingImgs}
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={nextImage}
-                      className="w-8 h-8 rounded-full bg-black/50 border border-white/20 flex items-center justify-center text-white hover:border-amber-500 transition-colors shrink-0"
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
                   </div>
                 )}
               </div>
@@ -599,7 +771,7 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
               {places.slice(1).map((place) => {
                 const pImgs = getPlaceImages(place);
                 return (
-                  <div key={place.id} className="bg-[#0b1619] rounded-3xl border border-white/5 overflow-hidden group hover:border-amber-500/30 transition-all">
+                  <div key={place.id} className="bg-[#0b1619] rounded-3xl border border-white/5 overflow-hidden group hover:border-amber-500/30 hover:-translate-y-1 transition-all shadow-lg">
                     <div className="relative h-48">
                       <img src={pImgs[0]} alt={place.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0b1619] to-transparent" />
@@ -608,7 +780,7 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
                       </span>
                     </div>
                     <div className="p-5">
-                      <h3 className="text-xl font-bold text-white mb-2">{place.name}</h3>
+                      <h3 className="text-xl font-display font-bold text-white mb-2">{place.name}</h3>
                       <p className="text-gray-400 text-xs line-clamp-2 mb-4">{place.description}</p>
                       <button onClick={() => router.push(`/map?destination=${place.name}`)} className="w-full bg-white/5 hover:bg-amber-500 hover:text-black text-white text-sm font-bold py-2.5 rounded-xl transition-colors border border-white/10 flex items-center justify-center gap-2">
                         {t.landmarks.viewDetails} <ChevronLeft size={16} className={dir === 'ltr' ? 'rotate-180' : ''} />
@@ -622,15 +794,17 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
         </div>
       </section>
 
-      {/* --- عادات وتقاليد (ثابت) --- */}
-      <section className="py-14 sm:py-20 bg-[#070d10]">
+      <DomeDivider tone="#0b1619" />
+
+      {/* ============================= عادات وتقاليد (ثابت) ============================= */}
+      <section className="py-14 sm:py-20 bg-[#0b1619]">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-end mb-10">
             <div className="flex items-center gap-2 text-amber-500">
-              <Tent size={24} />
-              <h2 className="text-3xl font-black text-white">{t.traditions.title}</h2>
+              <Tent size={22} />
+              <h2 className="text-2xl sm:text-3xl font-display font-black text-white">{t.traditions.title}</h2>
             </div>
-            <button className="px-6 py-2.5 rounded-full border border-white/20 text-xs font-bold hover:bg-white/10 transition-colors hidden sm:block">
+            <button className="px-6 py-2.5 rounded-full border border-white/20 text-xs font-bold hover:bg-white/10 hover:border-amber-500/40 transition-colors hidden sm:block">
               {t.traditions.showAll}
             </button>
           </div>
@@ -649,18 +823,18 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
         </div>
       </section>
 
-      {/* --- ذكرى في ولاية الوادي (ديناميكي - كاروسيل) --- */}
-      <section className="py-14 sm:py-20 bg-[#070d10]">
+      {/* ============================= ذكرى في ولاية الوادي (ديناميكي - كاروسيل) ============================= */}
+      <section className="py-14 sm:py-20 bg-[#070d10]" id="memories">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-end mb-10">
             <div>
               <div className="flex items-center gap-2 text-teal-500 mb-2">
-                <Camera size={24} />
-                <h2 className="text-3xl font-black text-white">{t.memories.title}</h2>
+                <Camera size={22} />
+                <h2 className="text-2xl sm:text-3xl font-display font-black text-white">{t.memories.title}</h2>
               </div>
               <p className="text-gray-400 text-sm mt-2">{t.memories.desc}</p>
             </div>
-            <button className="px-6 py-2.5 rounded-full border border-white/20 text-xs font-bold hover:bg-white/10 transition-colors hidden sm:block">
+            <button className="px-6 py-2.5 rounded-full border border-white/20 text-xs font-bold hover:bg-white/10 hover:border-teal-500/40 transition-colors hidden sm:block">
               {t.memories.showAll}
             </button>
           </div>
@@ -729,18 +903,18 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
         </div>
       </section>
 
-      {/* --- آراء الزوار (ديناميكي) --- */}
-      <section className="py-14 sm:py-20 bg-[#070d10]">
+      {/* ============================= آراء الزوار (ديناميكي) ============================= */}
+      <section className="py-14 sm:py-20 bg-[#070d10]" id="testimonials">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4">
             <div className="flex items-center gap-2 text-amber-500">
-              <Quote size={24} />
+              <Quote size={22} />
               <div>
-                <h2 className="text-3xl font-black text-white">{t.testimonials.title}</h2>
+                <h2 className="text-2xl sm:text-3xl font-display font-black text-white">{t.testimonials.title}</h2>
                 <p className="text-gray-400 text-xs mt-1">{t.testimonials.desc}</p>
               </div>
             </div>
-            <button className="bg-amber-500 text-black font-bold py-2.5 px-6 rounded-xl text-xs hover:bg-amber-400 transition-colors shadow-lg">
+            <button className="bg-amber-500 text-black font-bold py-2.5 px-6 rounded-xl text-xs hover:bg-amber-400 transition-colors shadow-lg shrink-0">
               {t.testimonials.writeBtn}
             </button>
           </div>
@@ -798,18 +972,15 @@ export default function ExploreClient({ places = [], oldMemories = [], testimoni
         </div>
       </section>
 
-      {/* --- الفوتر --- */}
-      <footer className="bg-[#050b0d] border-t border-white/5 pt-16 pb-8 mt-10">
+      {/* ============================= الفوتر ============================= */}
+      <footer id="footer" className="bg-[#050b0d] border-t border-white/5 pt-16 pb-8 mt-10 relative overflow-hidden">
+        <DomeDivider tone="#070d10" className="absolute -top-px left-0 right-0 rotate-180" />
         <div className="container mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
             <div>
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-tr from-teal-600 to-amber-500 rounded-full flex items-center justify-center p-1">
-                  <div className="w-full h-full bg-[#050b0d] rounded-full flex items-center justify-center">
-                    <Sun size={20} className="text-amber-500" />
-                  </div>
-                </div>
-                <h3 className="text-2xl font-black text-white">سوف 360</h3>
+                <BrandLogo size={42} />
+                <h3 className="text-2xl font-display font-black text-white">سوف 360</h3>
               </div>
               <p className="text-gray-400 text-xs leading-relaxed mb-6">
                 {t.footer.desc}
