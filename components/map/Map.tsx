@@ -15,33 +15,97 @@ import { Compass, Plus, Minus, LocateFixed, Maximize, Minimize } from 'lucide-re
 import { Place } from '@/data/places';
 
 /* ============================================================
-   أيقونات العلامات (Markers)
+   أيقونات العلامات (Markers) — تصنيف تلقائي احترافي
    ============================================================ */
 
-const getCategoryIcon = (category: string) => {
-  let emoji = '🏛️';
-  let bgColor = '#7c3aed';
+interface CategoryStyle {
+  emoji: string;
+  bgColor: string;
+  keywords: string[];
+}
 
-  if (category.includes('فندق') || category.includes('فنادق')) {
-    emoji = '🏨';
-    bgColor = '#2563eb';
-  } else if (category.includes('مطعم') || category.includes('مطاعم') || category.includes('أكل')) {
-    emoji = '🍽️';
-    bgColor = '#ea580c';
-  } else if (category.includes('صحي') || category.includes('مستشفى') || category.includes('صيدلي')) {
-    emoji = '🏥';
-    bgColor = '#dc2626';
-  } else if (category.includes('سوق') || category.includes('أسواق') || category.includes('تجاري')) {
-    emoji = '🛒';
-    bgColor = '#16a34a';
-  } else if (category.includes('تاريخ') || category.includes('ثقاف') || category.includes('معلم')) {
-    emoji = '🏛️';
-    bgColor = '#7c3aed';
-  }
+const CATEGORY_STYLES: CategoryStyle[] = [
+  {
+    emoji: '🏨',
+    bgColor: '#2563eb', // أزرق
+    keywords: ['فندق', 'فنادق', 'نزل', 'استراحة', 'شقق فندقية'],
+  },
+  {
+    emoji: '🍽️',
+    bgColor: '#ea580c', // برتقالي
+    keywords: ['مطعم', 'مطاعم', 'أكل', 'مأكولات', 'وجبات', 'مقهى', 'مقاهي', 'كافيه', 'حلويات'],
+  },
+  {
+    emoji: '🏥',
+    bgColor: '#dc2626', // أحمر
+    keywords: ['صحي', 'مستشفى', 'مستشفيات', 'عيادة', 'عيادات', 'صيدلي', 'صيدلية', 'طوارئ', 'طبي'],
+  },
+  {
+    emoji: '🛒',
+    bgColor: '#16a34a', // أخضر
+    keywords: ['سوق', 'أسواق', 'تجاري', 'تسوق', 'محل', 'محلات', 'مول'],
+  },
+  {
+    emoji: '🕌',
+    bgColor: '#0d9488', // فيروزي
+    keywords: ['مسجد', 'مساجد', 'جامع', 'مصلى'],
+  },
+  {
+    emoji: '🎓',
+    bgColor: '#4338ca', // نيلي
+    keywords: ['مدرسة', 'مدارس', 'جامعة', 'معهد', 'تعليم', 'تعليمي'],
+  },
+  {
+    emoji: '🏦',
+    bgColor: '#0369a1', // أزرق داكن
+    keywords: ['بنك', 'بنوك', 'مصرف', 'صراف'],
+  },
+  {
+    emoji: '⛽',
+    bgColor: '#b45309', // كهرماني
+    keywords: ['وقود', 'محطة', 'بنزين', 'غاز'],
+  },
+  {
+    emoji: '🌳',
+    bgColor: '#15803d', // أخضر داكن
+    keywords: ['حديقة', 'حدائق', 'منتزه', 'ترفيه', 'ترفيهي'],
+  },
+  {
+    emoji: '🏛️',
+    bgColor: '#7c3aed', // بنفسجي
+    keywords: ['تاريخ', 'ثقاف', 'معلم', 'أثري', 'متحف', 'حكومي', 'إدارة', 'بلدية'],
+  },
+];
+
+const DEFAULT_CATEGORY_STYLE: CategoryStyle = {
+  emoji: '📍',
+  bgColor: '#7c3aed',
+  keywords: [],
+};
+
+const getCategoryStyle = (category: string): CategoryStyle => {
+  const normalized = category?.trim() ?? '';
+  const match = CATEGORY_STYLES.find((style) =>
+    style.keywords.some((keyword) => normalized.includes(keyword))
+  );
+  return match ?? DEFAULT_CATEGORY_STYLE;
+};
+
+const getCategoryIcon = (category: string) => {
+  const { emoji, bgColor } = getCategoryStyle(category);
 
   return L.divIcon({
     className: 'soufmap-cat-icon',
-    html: `<div style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:${bgColor};border:2.5px solid white;border-radius:50%;box-shadow:0 4px 10px rgba(0,0,0,0.35);font-size:15px;">${emoji}</div>`,
+    html: `
+      <div style="
+        display:flex;align-items:center;justify-content:center;
+        width:32px;height:32px;
+        background:linear-gradient(145deg, ${bgColor}, ${bgColor}dd);
+        border:2.5px solid white;border-radius:50%;
+        box-shadow:0 4px 10px rgba(0,0,0,0.35);
+        font-size:15px;
+      ">${emoji}</div>
+    `,
     iconSize: [32, 32],
     iconAnchor: [16, 16],
     popupAnchor: [0, -18],
