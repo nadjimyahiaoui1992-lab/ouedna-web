@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
@@ -8,6 +8,7 @@ import {
   Compass, MapPin, Navigation, Sparkles, ImageIcon, Upload,
   Landmark as LandmarkIcon, ChevronLeft, ChevronRight, X,
   MessageSquareHeart, Loader2, Camera, Quote, Sun, Award, Clock3,
+  Search, Tag, Heart, Share2, Check,
 } from 'lucide-react';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -43,6 +44,8 @@ type Testimonial = {
 
 const FALLBACK_IMG =
   'https://images.unsplash.com/photo-1542601098-8fc114e148e2?q=80&w=800&auto=format&fit=crop';
+
+const FAVORITES_KEY = 'souf360_favorites';
 
 // ============================= دالة تحليل الصور الخارقة =============================
 function parseImages(input: any): string[] {
@@ -117,8 +120,21 @@ function getPlaceImages(place: Place): string[] {
   return list.length > 0 ? list : [FALLBACK_IMG];
 }
 
+// يبني رابط خريطة المنصة الداخلية (/map) لمعلم معيّن، مع المعرّف والإحداثيات إن وُجدت،
+// حتى تتمكّن الخريطة من التركيز على المعلم وعرضه مباشرة دون أي خروج لخرائط خارجية.
+// autoRoute=true تجعل الخريطة تبدأ حساب المسار مباشرة بدل الاكتفاء بعرض العلامة فقط.
+function buildInternalMapUrl(place: Place, autoRoute = false): string {
+  const params = new URLSearchParams();
+  params.set('placeId', String(place.id));
+  if (typeof place.lat === 'number') params.set('lat', String(place.lat));
+  if (typeof place.lng === 'number') params.set('lng', String(place.lng));
+  if (place.name) params.set('destination', place.name);
+  if (autoRoute) params.set('autoRoute', 'true');
+  return `/map?${params.toString()}`;
+}
+
 /* ============================= الهوية البصرية الموحّدة ============================= */
-/* شعار "سوف 360": قبة معمارية داخل بوصلة — يوحّد الرمز بين صفحة الدخول وصفحة الاستكشاف */
+/* شعار "سوف 360": قبة معمارية داخل بوصلة — يوحّد الرمز بين صفحة الدخول ولوحة الأدمين وصفحة الاستكشاف */
 function LogoMark({ size = 26, className = '' }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className}>
@@ -135,7 +151,7 @@ function LogoMark({ size = 26, className = '' }: { size?: number; className?: st
   );
 }
 
-/* خط أفق القِباب — نفس التوقيع البصري المستخدم في صفحة الدخول لتوحيد الهوية بين الصفحتين */
+/* خط أفق القِباب — نفس التوقيع البصري المستخدم فالمنصة لتوحيد الهوية */
 function DomeSkyline({ fill = '#0a0908', className = '' }: { fill?: string; className?: string }) {
   return (
     <svg className={className} viewBox="0 0 1200 120" preserveAspectRatio="none" fill="none">
@@ -158,6 +174,72 @@ function DuneDivider() {
           strokeWidth="1"
         />
       </svg>
+    </div>
+  );
+}
+
+/* ============================= خلفية "الغوط" تحت أشعة الشمس ============================= */
+/* الغوط: حفرة فلاحية تقليدية بالسوف مزروعة بالنخيل، محاطة بكثبان رملية. هذه الخلفية الثابتة
+   تُبقي المحتوى مقروءاً (طبقات معتمة فوقها) بينما تمنح الصفحة هويتها البصرية المميزة. */
+function GhoutBackdrop() {
+  return (
+    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      {/* توهج الشمس */}
+      <div
+        className="absolute left-1/2 top-[-10%] -translate-x-1/2 w-[140vw] h-[70vh] opacity-[0.16]"
+        style={{
+          background:
+            'radial-gradient(circle at 50% 0%, #fbbf24 0%, #f59e0b 22%, transparent 65%)',
+        }}
+      />
+      {/* أشعة الشمس الدوارة ببطء */}
+      <div
+        className="sun-rays absolute left-1/2 top-[-25%] -translate-x-1/2 w-[160vmax] h-[160vmax] opacity-[0.05]"
+        style={{
+          background:
+            'repeating-conic-gradient(from 0deg, #fcd34d 0deg 4deg, transparent 4deg 16deg)',
+        }}
+      />
+
+      {/* حلقات الكثبان البعيدة (parallax ثابت) */}
+      <svg className="absolute inset-x-0 bottom-[38%] w-[120%] -left-[10%] opacity-[0.08]" viewBox="0 0 1400 220" preserveAspectRatio="none" fill="none">
+        <path d="M0 220 L0 140 Q150 90 300 140 T 600 140 T 900 140 T 1200 140 T 1400 140 L1400 220 Z" fill="#f59e0b" />
+      </svg>
+      <svg className="absolute inset-x-0 bottom-[18%] w-[130%] -left-[15%] opacity-[0.10]" viewBox="0 0 1400 220" preserveAspectRatio="none" fill="none">
+        <path d="M0 220 L0 160 Q200 100 400 160 T 800 160 T 1200 160 T 1400 160 L1400 220 Z" fill="#d97706" />
+      </svg>
+      {/* الكثيب الأقرب — قاع الغوط */}
+      <svg className="absolute inset-x-0 bottom-0 w-[120%] -left-[10%] opacity-[0.14]" viewBox="0 0 1400 260" preserveAspectRatio="none" fill="none">
+        <path d="M0 260 L0 190 Q180 120 380 185 T 760 185 T 1140 185 T 1400 185 L1400 260 Z" fill="#92400e" />
+      </svg>
+
+      {/* نخيل متناثر حول الغوط */}
+      {[
+        { x: '8%', y: '58%', s: 0.8 }, { x: '18%', y: '70%', s: 1.1 }, { x: '30%', y: '62%', s: 0.7 },
+        { x: '46%', y: '74%', s: 1 }, { x: '60%', y: '60%', s: 0.9 }, { x: '74%', y: '72%', s: 0.75 },
+        { x: '88%', y: '63%', s: 1.05 }, { x: '96%', y: '75%', s: 0.7 },
+      ].map((p, i) => (
+        <svg
+          key={i}
+          className="absolute opacity-[0.13]"
+          style={{ left: p.x, top: p.y, width: `${60 * p.s}px`, height: `${90 * p.s}px` }}
+          viewBox="0 0 60 90"
+          fill="none"
+        >
+          <path d="M30 90 L30 40" stroke="#78350f" strokeWidth="3" />
+          <g fill="#78350f">
+            <path d="M30 40 Q10 30 4 12 Q22 18 30 40Z" />
+            <path d="M30 40 Q50 30 56 12 Q38 18 30 40Z" />
+            <path d="M30 40 Q16 24 14 4 Q28 14 30 40Z" />
+            <path d="M30 40 Q44 24 46 4 Q32 14 30 40Z" />
+            <path d="M30 40 Q30 18 30 2 Q34 20 30 40Z" />
+          </g>
+        </svg>
+      ))}
+
+      {/* تعتيم علوي/سفلي لضمان تباين القراءة فوق الخلفية */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0908] via-transparent to-[#0a0908]" />
+      <div className="absolute inset-0 bg-[#0a0908]/70" />
     </div>
   );
 }
@@ -198,40 +280,108 @@ export default function ExploreClient({
 }) {
   const [activePlace, setActivePlace] = useState<Place | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState<string>('الكل');
+  const [favorites, setFavorites] = useState<Set<string | number>>(new Set());
+
+  // تحميل المفضلة من التخزين المحلي عند فتح الصفحة
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(FAVORITES_KEY);
+      if (raw) setFavorites(new Set(JSON.parse(raw)));
+    } catch {
+      // تجاهل أي خطأ فالقراءة
+    }
+  }, []);
+
+  const toggleFavorite = (id: string | number) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      try {
+        window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(Array.from(next)));
+      } catch {
+        // تجاهل أي خطأ فالكتابة
+      }
+      return next;
+    });
+  };
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    places.forEach((p) => p.category && set.add(p.category));
+    return ['الكل', ...Array.from(set)];
+  }, [places]);
+
+  const filteredPlaces = useMemo(() => {
+    return places.filter((p) => {
+      const matchCategory = activeCategory === 'الكل' || p.category === activeCategory;
+      const matchSearch =
+        !searchQuery.trim() ||
+        p.name?.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+        p.description?.toLowerCase().includes(searchQuery.trim().toLowerCase());
+      return matchCategory && matchSearch;
+    });
+  }, [places, activeCategory, searchQuery]);
 
   return (
     <div
       dir="rtl"
-      className="min-h-screen bg-[#0a0908] text-white selection:bg-amber-500/30"
+      className="relative min-h-screen bg-[#0a0908] text-white selection:bg-amber-500/30"
       style={{ fontFamily: "'Tajawal', 'IBM Plex Sans Arabic', sans-serif" }}
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap');
         @keyframes riseIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes driftSlow { from { transform: translateX(0); } to { transform: translateX(-4%); } }
+        @keyframes spinSlow { from { transform: translate(-50%,0) rotate(0deg); } to { transform: translate(-50%,0) rotate(360deg); } }
         .rise-1 { animation: riseIn 0.9s cubic-bezier(0.16,1,0.3,1) 0.05s both; }
         .rise-2 { animation: riseIn 0.9s cubic-bezier(0.16,1,0.3,1) 0.2s both; }
         .rise-3 { animation: riseIn 0.9s cubic-bezier(0.16,1,0.3,1) 0.35s both; }
         .dune-drift { animation: driftSlow 40s linear infinite alternate; }
+        .sun-rays { animation: spinSlow 160s linear infinite; }
         @media (prefers-reduced-motion: reduce) {
-          .rise-1, .rise-2, .rise-3, .dune-drift { animation: none !important; }
+          .rise-1, .rise-2, .rise-3, .dune-drift, .sun-rays { animation: none !important; }
         }
       `}</style>
 
-      <TopNav />
-      <Hero places={places} oldMemories={oldMemories} testimonials={testimonials} />
-      <DuneDivider />
+      <GhoutBackdrop />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 sm:pt-14 space-y-14 sm:space-y-20 pb-20">
-        <LandmarksSection places={places} onOpen={setActivePlace} />
-        <MemoriesGallery memories={oldMemories} />
-        <WilayaIntro />
-        <VisitorExperiences testimonials={testimonials} onShare={() => setShareOpen(true)} />
+      <div className="relative z-10">
+        <TopNav />
+        <Hero places={places} oldMemories={oldMemories} testimonials={testimonials} />
+        <DuneDivider />
+
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 sm:pt-14 space-y-14 sm:space-y-20 pb-20">
+          <LandmarksSection
+            places={filteredPlaces}
+            totalCount={places.length}
+            categories={categories}
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
+            onOpen={setActivePlace}
+          />
+          <MemoriesGallery memories={oldMemories} />
+          <WilayaIntro />
+          <VisitorExperiences testimonials={testimonials} onShare={() => setShareOpen(true)} />
+        </div>
+
+        <Footer />
       </div>
 
-      <Footer />
-
-      {activePlace && <PlaceModal place={activePlace} onClose={() => setActivePlace(null)} />}
+      {activePlace && (
+        <PlaceModal
+          place={activePlace}
+          isFavorite={favorites.has(activePlace.id)}
+          onToggleFavorite={() => toggleFavorite(activePlace.id)}
+          onClose={() => setActivePlace(null)}
+        />
+      )}
       {shareOpen && <ShareExperienceModal onClose={() => setShareOpen(false)} />}
     </div>
   );
@@ -249,7 +399,7 @@ function TopNav() {
         </div>
         <Link
           href="/"
-          className="flex items-center gap-1 text-sm font-bold text-stone-400 hover:text-white transition bg-white/5 px-3 py-1.5 rounded-full"
+          className="flex items-center gap-1 text-sm font-bold text-stone-400 hover:text-white transition bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full"
         >
           <ChevronRight size={16} /> الرئيسية
         </Link>
@@ -325,62 +475,152 @@ function Hero({
 
 function LandmarksSection({
   places,
+  totalCount,
+  categories,
+  activeCategory,
+  onCategoryChange,
+  searchQuery,
+  onSearchChange,
+  favorites,
+  onToggleFavorite,
   onOpen,
 }: {
   places: Place[];
+  totalCount: number;
+  categories: string[];
+  activeCategory: string;
+  onCategoryChange: (c: string) => void;
+  searchQuery: string;
+  onSearchChange: (v: string) => void;
+  favorites: Set<string | number>;
+  onToggleFavorite: (id: string | number) => void;
   onOpen: (p: Place) => void;
 }) {
+  const router = useRouter();
+
   return (
     <section>
-      <SectionEyebrow
-        icon={MapPin}
-        eyebrow="الوجهات"
-        title="اكتشف المعالم"
-        subtitle="أروع الوجهات السياحية والتاريخية في ولاية الوادي"
-      />
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
+        <SectionEyebrow
+          icon={MapPin}
+          eyebrow="الوجهات"
+          title="اكتشف المعالم"
+          subtitle={`أروع الوجهات السياحية والتاريخية في ولاية الوادي (${totalCount})`}
+        />
+      </div>
+
+      {/* شريط البحث والتصفية حسب الفئة — أزرار مفعّلة فعلياً على بيانات places */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-500" size={16} />
+          <input
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="ابحث عن معلم بالاسم أو الوصف..."
+            className="w-full bg-white/5 border border-white/10 focus:border-amber-500/50 rounded-xl pr-10 pl-3 py-2.5 text-sm outline-none transition placeholder:text-stone-500"
+          />
+        </div>
+        {categories.length > 1 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => onCategoryChange(cat)}
+                className={`shrink-0 flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl border transition ${
+                  activeCategory === cat
+                    ? 'bg-amber-500 text-black border-amber-500'
+                    : 'bg-white/5 text-stone-300 border-white/10 hover:border-amber-500/40 hover:text-amber-300'
+                }`}
+              >
+                <Tag size={12} /> {cat}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {places.length === 0 ? (
         <div className="text-center py-10 bg-white/5 rounded-2xl border border-white/5">
-          <p className="text-stone-400">لا توجد معالم مضافة حالياً.</p>
+          <p className="text-stone-400">
+            {totalCount === 0 ? 'لا توجد معالم مضافة حالياً.' : 'لا توجد نتائج مطابقة لبحثك.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {places.map((place) => {
             const placeImgs = getPlaceImages(place);
             const coverImg = placeImgs[0];
+            const isFav = favorites.has(place.id);
 
             return (
-              <button
+              <div
                 key={place.id}
-                onClick={() => onOpen(place)}
-                className="group relative text-right rounded-[1.5rem] overflow-hidden border border-white/5 bg-[#15120e] shadow-lg hover:shadow-amber-500/10 hover:-translate-y-1 hover:border-amber-500/20 transition-all duration-300"
+                className="group relative rounded-[1.5rem] overflow-hidden border border-white/5 bg-[#15120e] shadow-lg hover:shadow-amber-500/10 hover:-translate-y-1 hover:border-amber-500/20 transition-all duration-300"
               >
-                <div className="relative h-48">
-                  <img
-                    src={coverImg}
-                    alt={place.name}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = FALLBACK_IMG;
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#15120e] via-[#15120e]/20 to-transparent" />
-                  {place.category && (
-                    <span className="absolute top-3 right-3 bg-black/40 backdrop-blur text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-400/20">
-                      {place.category}
-                    </span>
-                  )}
-                </div>
-                <div className="p-4 sm:p-5">
-                  <h3 className="text-base sm:text-lg font-bold mb-1 text-white">{place.name}</h3>
-                  <p className="text-stone-400 text-xs line-clamp-2 leading-relaxed mb-4">
-                    {place.description}
-                  </p>
-                  <div className="w-full bg-white/5 group-hover:bg-amber-500 group-hover:text-black text-white text-xs sm:text-sm font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors border border-white/5">
-                    عرض التفاصيل والملاحة <ChevronLeft size={16} />
+                <button
+                  onClick={() => onOpen(place)}
+                  className="block w-full text-right"
+                  aria-label={`عرض تفاصيل ${place.name}`}
+                >
+                  <div className="relative h-48">
+                    <img
+                      src={coverImg}
+                      alt={place.name}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = FALLBACK_IMG;
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#15120e] via-[#15120e]/20 to-transparent" />
+                    {place.category && (
+                      <span className="absolute top-3 right-3 bg-black/40 backdrop-blur text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-400/20">
+                        {place.category}
+                      </span>
+                    )}
                   </div>
+                  <div className="p-4 sm:p-5 pb-0">
+                    <h3 className="text-base sm:text-lg font-bold mb-1 text-white">{place.name}</h3>
+                    <p className="text-stone-400 text-xs line-clamp-2 leading-relaxed mb-4">
+                      {place.description}
+                    </p>
+                  </div>
+                </button>
+
+                {/* زر المفضلة — يعمل فعلياً ويُخزَّن محلياً */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFavorite(place.id);
+                  }}
+                  aria-label={isFav ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+                  className={`absolute top-3 left-3 rounded-full p-1.5 backdrop-blur border transition ${
+                    isFav
+                      ? 'bg-amber-500 border-amber-500 text-black'
+                      : 'bg-black/40 border-white/10 text-white hover:border-amber-400/50'
+                  }`}
+                >
+                  <Heart size={14} fill={isFav ? 'currentColor' : 'none'} />
+                </button>
+
+                <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0 flex gap-2">
+                  <button
+                    onClick={() => onOpen(place)}
+                    className="flex-1 bg-white/5 group-hover:bg-amber-500 group-hover:text-black text-white text-xs sm:text-sm font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors border border-white/5"
+                  >
+                    عرض التفاصيل والملاحة <ChevronLeft size={16} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(buildInternalMapUrl(place));
+                    }}
+                    aria-label={`إظهار ${place.name} على خريطة المنصة`}
+                    className="shrink-0 flex items-center justify-center w-10 sm:w-11 bg-white/5 hover:bg-white/10 text-stone-300 hover:text-amber-300 rounded-xl border border-white/5 transition"
+                  >
+                    <MapPin size={15} />
+                  </button>
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
@@ -389,10 +629,22 @@ function LandmarksSection({
   );
 }
 
-function PlaceModal({ place, onClose }: { place: Place; onClose: () => void }) {
+function PlaceModal({
+  place,
+  isFavorite,
+  onToggleFavorite,
+  onClose,
+}: {
+  place: Place;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const [navigating, setNavigating] = useState(false);
   const [navigateError, setNavigateError] = useState('');
+  const [activeImg, setActiveImg] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   const images = useMemo(() => getPlaceImages(place), [place]);
 
@@ -402,8 +654,34 @@ function PlaceModal({ place, onClose }: { place: Place; onClose: () => void }) {
       return;
     }
     setNavigating(true);
-    router.push(`/map?destination=${encodeURIComponent(place.name)}&autoRoute=true`);
+    router.push(buildInternalMapUrl(place, true));
   };
+
+  const handleShowOnMap = () => {
+    router.push(buildInternalMapUrl(place));
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: place.name,
+      text: place.description || `اكتشف ${place.name} عبر سوف 360`,
+      url: typeof window !== 'undefined' ? window.location.href : '',
+    };
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share(shareData);
+      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareData.url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      // تم إلغاء المشاركة من طرف المستخدم — لا حاجة لعرض خطأ
+    }
+  };
+
+  const nextImg = () => setActiveImg((i) => (i + 1) % images.length);
+  const prevImg = () => setActiveImg((i) => (i - 1 + images.length) % images.length);
 
   return (
     <div
@@ -417,58 +695,128 @@ function PlaceModal({ place, onClose }: { place: Place; onClose: () => void }) {
       >
         <button
           onClick={onClose}
+          aria-label="إغلاق"
           className="absolute top-4 left-4 z-30 bg-black/60 hover:bg-black/90 text-white rounded-full p-2 transition shadow-lg"
         >
           <X size={18} />
         </button>
 
-        <div className="p-4 sm:p-6 pb-2 border-b border-white/5">
-          <p className="text-xs text-amber-400 font-bold mb-2 flex items-center gap-1.5">
-            <Camera size={14} /> اسحب يميناً ويساراً لمشاهدة صور المعلم ({images.length})
-          </p>
-          <div className="flex overflow-x-auto gap-3 pb-2 snap-x scrollbar-thin scrollbar-thumb-amber-500/50">
-            {images.map((imgUrl, idx) => (
-              <div
-                key={idx}
-                className="shrink-0 w-64 sm:w-72 h-44 sm:h-52 rounded-2xl overflow-hidden snap-center border border-white/10 relative shadow-md bg-black/40"
-              >
-                <img
-                  src={imgUrl}
-                  alt={`${place.name} - صورة ${idx + 1}`}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = FALLBACK_IMG;
-                  }}
-                />
-              </div>
-            ))}
+        <div className="relative">
+          <div className="relative h-56 sm:h-72 bg-black/40">
+            <img
+              src={images[activeImg]}
+              alt={`${place.name} - صورة ${activeImg + 1}`}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = FALLBACK_IMG;
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#171310] via-transparent to-black/20" />
+
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={prevImg}
+                  aria-label="الصورة السابقة"
+                  className="absolute top-1/2 -translate-y-1/2 right-3 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition"
+                >
+                  <ChevronRight size={18} />
+                </button>
+                <button
+                  onClick={nextImg}
+                  aria-label="الصورة التالية"
+                  className="absolute top-1/2 -translate-y-1/2 left-3 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-amber-300 text-[11px] font-bold px-2.5 py-1 rounded-full">
+                  {activeImg + 1} / {images.length}
+                </span>
+              </>
+            )}
           </div>
+
+          {images.length > 1 && (
+            <div className="flex overflow-x-auto gap-2 p-3 bg-[#12100c] border-b border-white/5">
+              {images.map((imgUrl, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveImg(idx)}
+                  className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition ${
+                    idx === activeImg ? 'border-amber-500' : 'border-transparent opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={imgUrl}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = FALLBACK_IMG;
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="p-5 sm:p-7">
-          {place.category && (
-            <span className="w-max bg-amber-500/20 text-amber-400 text-[11px] font-bold px-2.5 py-1 rounded-full mb-3 border border-amber-500/20 inline-block">
-              {place.category}
-            </span>
-          )}
+          <div className="flex items-start justify-between gap-3 mb-3">
+            {place.category ? (
+              <span className="bg-amber-500/20 text-amber-400 text-[11px] font-bold px-2.5 py-1 rounded-full border border-amber-500/20 inline-block">
+                {place.category}
+              </span>
+            ) : <span />}
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={onToggleFavorite}
+                aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+                className={`rounded-full p-2 border transition ${
+                  isFavorite
+                    ? 'bg-amber-500 border-amber-500 text-black'
+                    : 'bg-white/5 border-white/10 text-white hover:border-amber-400/50'
+                }`}
+              >
+                <Heart size={15} fill={isFavorite ? 'currentColor' : 'none'} />
+              </button>
+              <button
+                onClick={handleShare}
+                aria-label="مشاركة المعلم"
+                className="rounded-full p-2 border bg-white/5 border-white/10 text-white hover:border-amber-400/50 transition"
+              >
+                {copied ? <Check size={15} className="text-emerald-400" /> : <Share2 size={15} />}
+              </button>
+            </div>
+          </div>
+
           <h3 className="text-xl sm:text-2xl font-black mb-2 text-white">{place.name}</h3>
           <p className="text-stone-300 text-xs sm:text-sm leading-relaxed mb-6">{place.description}</p>
 
-          <button
-            onClick={handleInternalNavigate}
-            disabled={navigating}
-            className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-black font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition shadow-lg text-sm"
-          >
-            {navigating ? (
-              <>
-                <Loader2 size={18} className="animate-spin" /> جارٍ فتح خريطة المنصة وتفعيل المسار...
-              </>
-            ) : (
-              <>
-                <Navigation size={18} /> ابدأ الملاحة عبر خريطة سوف 360
-              </>
-            )}
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <button
+              onClick={handleInternalNavigate}
+              disabled={navigating}
+              className="flex-1 bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-black font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition shadow-lg text-sm"
+            >
+              {navigating ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" /> جارٍ فتح الخريطة...
+                </>
+              ) : (
+                <>
+                  <Navigation size={18} /> ابدأ الملاحة عبر خريطة سوف 360
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={handleShowOnMap}
+              className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white font-bold py-3.5 px-4 rounded-2xl border border-white/10 transition text-sm"
+            >
+              <MapPin size={16} /> إظهار على الخريطة
+            </button>
+          </div>
           {navigateError && <p className="text-amber-300 text-xs mt-2 text-center">{navigateError}</p>}
         </div>
       </div>
