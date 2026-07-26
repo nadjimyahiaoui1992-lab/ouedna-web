@@ -1,443 +1,78 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Tooltip,
-  Polyline,
-  useMap,
-} from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import { Compass, Plus, Minus, LocateFixed, Maximize, Minimize } from 'lucide-react';
-import { Place } from '@/data/places';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import { getPlacesFromDB, Place } from '@/data/places';
+import { Compass } from 'lucide-react';
 
-/* ============================================================
-   أيقونات العلامات (Markers)
-   ============================================================ */
-
-const getCategoryIcon = (category: string) => {
-  let emoji = '🏛️';
-  let bgColor = '#7c3aed';
-
-  if (category.includes('فنادق')) {
-    emoji = '🏨';
-    bgColor = '#2563eb';
-  } else if (category.includes('صحي') || category.includes('خدم')) {
-    emoji = '🏥';
-    bgColor = '#dc2626';
-  } else if (category.includes('أسواق')) {
-    emoji = '🛍️';
-    bgColor = '#16a34a';
-  } else if (category.includes('مطعم') || category.includes('مطاعم')) {
-    emoji = '🍽️';
-    bgColor = '#ea580c';
-  } else if (category.includes('تاريخ') || category.includes('ثقافة')) {
-    emoji = '🕌';
-    bgColor = '#7c3aed';
-  }
-
-  return L.divIcon({
-    className: 'soufmap-cat-icon',
-    html: `<div style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:${bgColor};border:2.5px solid white;border-radius:50%;box-shadow:0 4px 10px rgba(0,0,0,0.35);font-size:15px;">${emoji}</div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -18],
-  });
-};
-
-// نقطة البداية: موقع الزائر — دائرة زرقاء نابضة (Pulse)
-// ملاحظة: الأنماط مضمّنة (inline + <style> داخل الـ HTML) بدل الاعتماد على كلاسات CSS خارجية،
-// حتى تظهر العلامة دائماً حتى لو لم يتم تحميل ملف الأنماط العام لأي سبب.
-const buildUserIcon = (moving: boolean) =>
-  L.divIcon({
-    className: 'soufmap-user-icon',
-    html: `
-      <style>
-        @keyframes soufmapPulse { 0% { transform: scale(0.6); opacity: 0.55; } 100% { transform: scale(1.9); opacity: 0; } }
-      </style>
-      <div style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;">
-        <span style="position:absolute;width:20px;height:20px;border-radius:50%;background:#3b82f6;opacity:0.55;animation:soufmapPulse 1.8s ease-out infinite;"></span>
-        <span style="position:relative;width:18px;height:18px;border-radius:50%;background:#2563eb;border:3px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;">
-          ${moving ? '🚗' : ''}
-        </span>
+const SoufMap = dynamic(() => import('@/components/map/SoufMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[100dvh] w-full flex items-center justify-center bg-[#0f172a] text-white">
+      <div className="text-center space-y-3 p-4">
+        <Compass className="mx-auto text-amber-400 animate-spin-slow" size={40} />
+        <p className="text-sm sm:text-base">جاري تحميل الخريطة التفاعلية...</p>
       </div>
-    `,
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
-  });
-
-// نقطة النهاية: المعلم — دبوس أحمر (Pin)
-// نفس الملاحظة: بناء الشكل بالكامل بأنماط مضمّنة (بدون الاعتماد على كلاسات CSS خارجية) لضمان ظهوره دوماً.
-const destinationIcon = L.divIcon({
-  className: 'soufmap-dest-icon',
-  html: `
-    <div style="position:relative;width:34px;height:46px;">
-      <div style="
-        position:absolute;top:0;left:5px;width:24px;height:24px;
-        background:#dc2626;border:3px solid #ffffff;border-radius:50% 50% 50% 0;
-        transform:rotate(-45deg);box-shadow:0 3px 8px rgba(0,0,0,0.45);
-      "></div>
-      <div style="
-        position:absolute;top:8px;left:13px;width:8px;height:8px;
-        background:#ffffff;border-radius:50%;
-      "></div>
     </div>
-  `,
-  iconSize: [34, 46],
-  iconAnchor: [17, 44],
+  ),
 });
 
-/* ============================================================
-   مكوّنات مساعدة تعمل داخل سياق الخريطة (useMap)
-   ============================================================ */
+function MapContent() {
+  const searchParams = useSearchParams();
+  const destinationParam = searchParams.get('destination');
+  const placeIdParam = searchParams.get('placeId');
+  const latParam = searchParams.get('lat');
+  const lngParam = searchParams.get('lng');
+  const autoRouteParam = searchParams.get('autoRoute') === 'true';
 
-function FollowOrFit({
-  isNavigating,
-  userLocation,
-  routeCoordinates,
-  selectedPlace,
-}: {
-  isNavigating: boolean;
-  userLocation: { lat: number; lng: number } | null;
-  routeCoordinates: [number, number][];
-  selectedPlace: Place | null;
-}) {
-  const map = useMap();
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isNavigating && userLocation) {
-      // أثناء الملاحة الحيّة: تتبّع الزائر عن قرب
-      map.setView([userLocation.lat, userLocation.lng], 18, { animate: true });
-      return;
+    async function loadData() {
+      const data = await getPlacesFromDB();
+      setPlaces(data);
+      setLoading(false);
     }
-    if (!isNavigating && routeCoordinates.length > 1) {
-      // بعد حساب المسار: عرض المسار كاملاً من نقطة الانطلاق إلى الوجهة.
-      // على الجوال تكون لوحة تفاصيل الرحلة عبارة عن ورقة سفلية تغطي الجزء السفلي من الشاشة،
-      // لذا نترك هامشاً سفلياً أكبر حتى لا تختفي علامة الوجهة خلفها.
-      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-      const bounds = L.latLngBounds(routeCoordinates as L.LatLngExpression[]);
-      map.fitBounds(
-        bounds,
-        isMobile
-          ? { paddingTopLeft: [40, 100], paddingBottomRight: [40, 40] }
-          : { paddingTopLeft: [60, 140], paddingBottomRight: [420, 60] }
-      );
-      return;
-    }
-    if (selectedPlace) {
-      map.setView([selectedPlace.lat, selectedPlace.lng], 16, { animate: true });
-    }
-  }, [isNavigating, userLocation, routeCoordinates, selectedPlace, map]);
-
-  return null;
-}
-
-function ResizeHandler() {
-  const map = useMap();
-  useEffect(() => {
-    const container = map.getContainer();
-    const ro = new ResizeObserver(() => map.invalidateSize());
-    ro.observe(container);
-    const t = setTimeout(() => map.invalidateSize(), 200);
-    return () => {
-      ro.disconnect();
-      clearTimeout(t);
-    };
-  }, [map]);
-  return null;
-}
-
-/** أزرار التحكّم العائمة أعلى يسار الخريطة (بوصلة / تكبير / تصغير / تحديد الموقع / ملء الشاشة) */
-function MapControls({
-  onLocateUser,
-  routeCoordinates,
-  defaultCenter,
-}: {
-  onLocateUser: () => void;
-  routeCoordinates: [number, number][];
-  defaultCenter: [number, number];
-}) {
-  const map = useMap();
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  useEffect(() => {
-    if (wrapperRef.current) {
-      L.DomEvent.disableClickPropagation(wrapperRef.current);
-      L.DomEvent.disableScrollPropagation(wrapperRef.current);
-    }
+    loadData();
   }, []);
 
-  useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', handler);
-    return () => document.removeEventListener('fullscreenchange', handler);
-  }, []);
-
-  const handleReorient = () => {
-    if (routeCoordinates.length > 1) {
-      map.fitBounds(L.latLngBounds(routeCoordinates as L.LatLngExpression[]), { padding: [60, 60] });
-    } else {
-      map.setView(defaultCenter, 13, { animate: true });
-    }
-  };
-
-  const handleFullscreen = () => {
-    const el = map.getContainer();
-    if (!document.fullscreenElement) {
-      el.requestFullscreen?.().catch(() => {});
-    } else {
-      document.exitFullscreen?.().catch(() => {});
-    }
-  };
-
-  const ctrlBtnClass =
-    'flex items-center justify-center w-9 h-9 rounded-xl bg-[#101a35] text-white border border-white/10 shadow-lg hover:bg-[#182246] active:scale-95 transition-all';
+  if (loading) {
+    return (
+      <div className="min-h-[100dvh] bg-[#0f172a] flex items-center justify-center text-white">
+        <div className="text-center px-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm sm:text-lg">جاري جلب المعالم الحقيقية من قاعدة البيانات...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div
-      ref={wrapperRef}
-      className="soufmap-controls absolute top-4 left-4 z-[1000] flex flex-col gap-2"
-      style={{ zIndex: 1000 }}
-    >
-      <button type="button" onClick={handleReorient} aria-label="إعادة توجيه الخريطة" className={ctrlBtnClass}>
-        <Compass size={18} />
-      </button>
-      <div className="flex flex-col rounded-xl overflow-hidden border border-white/10 shadow-lg">
-        <button
-          type="button"
-          onClick={() => map.zoomIn()}
-          aria-label="تكبير"
-          className="flex items-center justify-center w-9 h-9 bg-[#101a35] text-white hover:bg-[#182246] active:scale-95 transition-all border-b border-white/10"
-        >
-          <Plus size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={() => map.zoomOut()}
-          aria-label="تصغير"
-          className="flex items-center justify-center w-9 h-9 bg-[#101a35] text-white hover:bg-[#182246] active:scale-95 transition-all"
-        >
-          <Minus size={18} />
-        </button>
-      </div>
-      {/* زر تحديد الموقع الحالي — كان غائباً عن الظهور لاعتماده على كلاس CSS خارجي غير محمَّل */}
-      <button
-        type="button"
-        onClick={onLocateUser}
-        aria-label="تحديد موقعي الحالي"
-        title="تحديد موقعي الحالي"
-        className={`${ctrlBtnClass} !bg-sky-600 hover:!bg-sky-500 text-white`}
-      >
-        <LocateFixed size={18} />
-      </button>
-      <button type="button" onClick={handleFullscreen} aria-label="ملء الشاشة" className={ctrlBtnClass}>
-        {isFullscreen ? <Minimize size={17} /> : <Maximize size={17} />}
-      </button>
-    </div>
+    <main dir="rtl" className="min-h-[100dvh] bg-[#0f172a] text-white flex flex-col overflow-hidden">
+      <SoufMap
+        places={places}
+        initialDestinationQuery={destinationParam}
+        initialPlaceId={placeIdParam}
+        initialLat={latParam ? parseFloat(latParam) : null}
+        initialLng={lngParam ? parseFloat(lngParam) : null}
+        initialAutoRoute={autoRouteParam}
+      />
+    </main>
   );
 }
 
-/* ============================================================
-   أنواع البيانات
-   ============================================================ */
-
-export interface RouteStep {
-  instruction: string;
-  distanceMeters: number;
-  type?: 'depart' | 'straight' | 'turn-left' | 'turn-right' | 'roundabout' | 'arrive' | string;
-}
-
-export interface RouteInfo {
-  distanceKm: number;
-  durationMin: number;
-  estimated?: boolean;
-  steps?: RouteStep[];
-}
-
-interface MapProps {
-  places: Place[];
-  selectedPlace: Place | null;
-  onSelectPlace: (place: Place) => void;
-  mapTheme?: 'day' | 'night';
-  travelMode?: 'car' | 'walk';
-  userLocation?: { lat: number; lng: number } | null;
-  routeTarget?: Place | null;
-  onRouteInfoCalculated?: (info: RouteInfo | null) => void;
-  onRouteStatusChange?: (status: { loading: boolean; error: string | null }) => void;
-  onLocateUser?: () => void;
-  isNavigating?: boolean;
-}
-
-const DEFAULT_CENTER: [number, number] = [33.3683, 6.8667]; // وادي سوف
-
-export default function Map({
-  places,
-  selectedPlace,
-  onSelectPlace,
-  mapTheme = 'day',
-  travelMode = 'car',
-  userLocation = null,
-  routeTarget = null,
-  onRouteInfoCalculated,
-  onRouteStatusChange,
-  onLocateUser,
-  isNavigating = false,
-}: MapProps) {
-  const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
-
-  const defaultCenter: [number, number] = userLocation
-    ? [userLocation.lat, userLocation.lng]
-    : selectedPlace
-    ? [selectedPlace.lat, selectedPlace.lng]
-    : DEFAULT_CENTER;
-
-  const tileUrl =
-    mapTheme === 'night'
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-  const tileAttribution =
-    mapTheme === 'night'
-      ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-      : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-
-  // حساب مسار حقيقي: البداية دائماً موقع الزائر الحالي (userLocation)، والنهاية دائماً المعلم المختار (routeTarget)
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchRoute() {
-      if (!userLocation || !routeTarget) {
-        setRouteCoordinates([]);
-        if (onRouteInfoCalculated) onRouteInfoCalculated(null);
-        if (onRouteStatusChange) onRouteStatusChange({ loading: false, error: null });
-        return;
-      }
-
-      if (onRouteStatusChange) onRouteStatusChange({ loading: true, error: null });
-
-      try {
-        const params = new URLSearchParams({
-          originLat: String(userLocation.lat),
-          originLng: String(userLocation.lng),
-          destLat: String(routeTarget.lat),
-          destLng: String(routeTarget.lng),
-          mode: travelMode === 'walk' ? 'walking' : 'driving',
-        });
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-        const res = await fetch(`/api/route?${params.toString()}`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (cancelled) return;
-
-        setRouteCoordinates(data.coordinates as [number, number][]);
-
-        if (onRouteInfoCalculated) {
-          onRouteInfoCalculated({
-            distanceKm: data.distanceKm,
-            durationMin: data.durationMin,
-            estimated: !!data.estimated,
-            steps: Array.isArray(data.steps) ? data.steps : undefined,
-          });
-        }
-        if (onRouteStatusChange) onRouteStatusChange({ loading: false, error: null });
-      } catch (err) {
-        console.error('تعذّر الوصول لخدمة حساب المسار الداخلية:', err);
-        if (!cancelled) {
-          setRouteCoordinates([]);
-          if (onRouteInfoCalculated) onRouteInfoCalculated(null);
-          if (onRouteStatusChange) {
-            onRouteStatusChange({
-              loading: false,
-              error: 'تحقّق من اتصالك بالإنترنت وحاول مجدداً.',
-            });
-          }
-        }
-      }
-    }
-
-    fetchRoute();
-    return () => {
-      cancelled = true;
-    };
-  }, [userLocation, routeTarget, travelMode, onRouteInfoCalculated, onRouteStatusChange]);
-
+export default function MapPage() {
   return (
-    <MapContainer
-      center={defaultCenter}
-      zoom={isNavigating ? 17 : 13}
-      className="soufmap-container"
-      style={{ height: '100%', width: '100%' }}
-      zoomControl={false}
-      attributionControl={true}
+    <Suspense
+      fallback={
+        <div className="min-h-[100dvh] bg-[#0f172a] flex items-center justify-center text-white">
+          جاري التحميل...
+        </div>
+      }
     >
-      <TileLayer key={mapTheme} attribution={tileAttribution} url={tileUrl} />
-
-      <ResizeHandler />
-      <FollowOrFit
-        isNavigating={isNavigating}
-        userLocation={userLocation}
-        routeCoordinates={routeCoordinates}
-        selectedPlace={selectedPlace}
-      />
-      <MapControls
-        onLocateUser={() => onLocateUser && onLocateUser()}
-        routeCoordinates={routeCoordinates}
-        defaultCenter={defaultCenter}
-      />
-
-      {/* خط المسار: طبقة تبطين داكنة + خط أزرق علوي بأسلوب تطبيقات الملاحة */}
-      {routeCoordinates.length > 0 && (
-        <>
-          <Polyline
-            positions={routeCoordinates}
-            pathOptions={{ color: '#0b1220', weight: 10, opacity: 0.35, lineJoin: 'round', lineCap: 'round' }}
-          />
-          <Polyline
-            positions={routeCoordinates}
-            pathOptions={{ color: '#3b82f6', weight: 6, opacity: 0.95, lineJoin: 'round', lineCap: 'round' }}
-          />
-        </>
-      )}
-
-      {/* نقطة البداية: موقع الزائر الحالي */}
-      {userLocation && (
-        <Marker position={[userLocation.lat, userLocation.lng]} icon={buildUserIcon(isNavigating)}>
-          <Tooltip permanent direction="top" offset={[0, -30]} className="soufmap-tag soufmap-tag-user">
-            موقعك الحالي
-          </Tooltip>
-        </Marker>
-      )}
-
-      {/* نقطة النهاية: المعلم المستهدف (فقط أثناء وجود مسار نشط) */}
-      {routeTarget && (
-        <Marker position={[routeTarget.lat, routeTarget.lng]} icon={destinationIcon}>
-          <Tooltip permanent direction="top" offset={[0, -40]} className="soufmap-tag soufmap-tag-dest">
-            {routeTarget.name}
-          </Tooltip>
-        </Marker>
-      )}
-
-      {/* بقية المعالم على الخريطة */}
-      {places
-        .filter((p) => !routeTarget || p.id !== routeTarget.id)
-        .map((place) => (
-          <Marker
-            key={place.id}
-            position={[place.lat, place.lng]}
-            icon={getCategoryIcon(place.category)}
-            eventHandlers={{
-              click: () => onSelectPlace(place),
-            }}
-          />
-        ))}
-    </MapContainer>
+      <MapContent />
+    </Suspense>
   );
 }
