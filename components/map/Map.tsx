@@ -22,20 +22,20 @@ const getCategoryIcon = (category: string) => {
   let emoji = '🏛️';
   let bgColor = '#7c3aed';
 
-  if (category.includes('فنادق')) {
+  if (category.includes('فندق') || category.includes('فنادق')) {
     emoji = '🏨';
     bgColor = '#2563eb';
-  } else if (category.includes('صحي') || category.includes('خدم')) {
-    emoji = '🏥';
-    bgColor = '#dc2626';
-  } else if (category.includes('أسواق')) {
-    emoji = '🛍️';
-    bgColor = '#16a34a';
-  } else if (category.includes('مطعم') || category.includes('مطاعم')) {
+  } else if (category.includes('مطعم') || category.includes('مطاعم') || category.includes('أكل')) {
     emoji = '🍽️';
     bgColor = '#ea580c';
-  } else if (category.includes('تاريخ') || category.includes('ثقافة')) {
-    emoji = '🕌';
+  } else if (category.includes('صحي') || category.includes('مستشفى') || category.includes('صيدلي')) {
+    emoji = '🏥';
+    bgColor = '#dc2626';
+  } else if (category.includes('سوق') || category.includes('أسواق') || category.includes('تجاري')) {
+    emoji = '🛒';
+    bgColor = '#16a34a';
+  } else if (category.includes('تاريخ') || category.includes('ثقاف') || category.includes('معلم')) {
+    emoji = '🏛️';
     bgColor = '#7c3aed';
   }
 
@@ -49,8 +49,6 @@ const getCategoryIcon = (category: string) => {
 };
 
 // نقطة البداية: موقع الزائر — دائرة زرقاء نابضة (Pulse)
-// ملاحظة: الأنماط مضمّنة (inline + <style> داخل الـ HTML) بدل الاعتماد على كلاسات CSS خارجية،
-// حتى تظهر العلامة دائماً حتى لو لم يتم تحميل ملف الأنماط العام لأي سبب.
 const buildUserIcon = (moving: boolean) =>
   L.divIcon({
     className: 'soufmap-user-icon',
@@ -70,7 +68,6 @@ const buildUserIcon = (moving: boolean) =>
   });
 
 // نقطة النهاية: المعلم — دبوس أحمر (Pin)
-// نفس الملاحظة: بناء الشكل بالكامل بأنماط مضمّنة (بدون الاعتماد على كلاسات CSS خارجية) لضمان ظهوره دوماً.
 const destinationIcon = L.divIcon({
   className: 'soufmap-dest-icon',
   html: `
@@ -115,8 +112,6 @@ function FollowOrFit({
     }
     if (!isNavigating && routeCoordinates.length > 1) {
       // بعد حساب المسار: عرض المسار كاملاً من نقطة الانطلاق إلى الوجهة.
-      // على الجوال تكون لوحة تفاصيل الرحلة عبارة عن ورقة سفلية تغطي الجزء السفلي من الشاشة،
-      // لذا نترك هامشاً سفلياً أكبر حتى لا تختفي علامة الوجهة خلفها.
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
       const bounds = L.latLngBounds(routeCoordinates as L.LatLngExpression[]);
       map.fitBounds(
@@ -224,7 +219,6 @@ function MapControls({
           <Minus size={18} />
         </button>
       </div>
-      {/* زر تحديد الموقع الحالي — كان غائباً عن الظهور لاعتماده على كلاس CSS خارجي غير محمَّل */}
       <button
         type="button"
         onClick={onLocateUser}
