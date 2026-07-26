@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import {
-  Compass, MapPin, Navigation, Sparkles, ImageIcon, Upload,
+  Compass, MapPin, Sparkles, ImageIcon, Upload,
   Landmark as LandmarkIcon, ChevronLeft, ChevronRight, X,
-  MessageSquareHeart, Loader2, Camera, Quote, Sun, Award, Clock3,
-  Search, Tag, Heart, Share2, Check,
+  MessageSquareHeart, Camera, Quote, Sun, Award, Clock3,
+  Search, Tag, Heart, Share2, Check, Info, Navigation2,
 } from 'lucide-react';
+import { LanguageProvider, useLanguage, useAutoTranslate, DictKey } from '@/lib/i18n';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -46,6 +48,9 @@ const FALLBACK_IMG =
   'https://images.unsplash.com/photo-1542601098-8fc114e148e2?q=80&w=800&auto=format&fit=crop';
 
 const FAVORITES_KEY = 'souf360_favorites';
+
+// اسم Bucket تخزين صور تجارب الزوار — يجب أن يطابق تماماً اسم الـ bucket المُنشأ فعلياً في Supabase Storage
+const TESTIMONIALS_BUCKET = 'testimonials-photos';
 
 // ============================= دالة تحليل الصور الخارقة =============================
 function parseImages(input: any): string[] {
@@ -122,14 +127,12 @@ function getPlaceImages(place: Place): string[] {
 
 // يبني رابط خريطة المنصة الداخلية (/map) لمعلم معيّن، مع المعرّف والإحداثيات إن وُجدت،
 // حتى تتمكّن الخريطة من التركيز على المعلم وعرضه مباشرة دون أي خروج لخرائط خارجية.
-// autoRoute=true تجعل الخريطة تبدأ حساب المسار مباشرة بدل الاكتفاء بعرض العلامة فقط.
-function buildInternalMapUrl(place: Place, autoRoute = false): string {
+function buildInternalMapUrl(place: Place): string {
   const params = new URLSearchParams();
   params.set('placeId', String(place.id));
   if (typeof place.lat === 'number') params.set('lat', String(place.lat));
   if (typeof place.lng === 'number') params.set('lng', String(place.lng));
   if (place.name) params.set('destination', place.name);
-  if (autoRoute) params.set('autoRoute', 'true');
   return `/map?${params.toString()}`;
 }
 
@@ -163,6 +166,20 @@ function DomeSkyline({ fill = '#0a0908', className = '' }: { fill?: string; clas
   );
 }
 
+/* أُفق "الألف قبة" — صفّ كثيف ومتكرر من القباب الصغيرة، إشارة مباشرة للقب المدينة الشهير،
+   يُستعمل كطبقة زخرفية خلفية إضافية فوق خط الأفق الرئيسي */
+function ThousandDomesFrieze({ opacity = 0.09, fill = '#f59e0b' }: { opacity?: number; fill?: string }) {
+  const domes = Array.from({ length: 30 }, (_, i) => i);
+  return (
+    <svg className="absolute inset-x-0 bottom-[30%] w-[110%] -left-[5%]" viewBox="0 0 1500 60" preserveAspectRatio="none" fill="none" style={{ opacity }}>
+      {domes.map((i) => {
+        const cx = i * 52 + 20;
+        return <path key={i} d={`M${cx - 20} 60 L${cx - 20} 34 A20 20 0 0 1 ${cx + 20} 34 L${cx + 20} 60 Z`} fill={fill} />;
+      })}
+    </svg>
+  );
+}
+
 /* الخط الرملي المتموج — فاصل زخرفي متكرر بين الأقسام، إشارة لكثبان السوف */
 function DuneDivider() {
   return (
@@ -178,42 +195,54 @@ function DuneDivider() {
   );
 }
 
-/* ============================= خلفية "الغوط" تحت أشعة الشمس ============================= */
-/* الغوط: حفرة فلاحية تقليدية بالسوف مزروعة بالنخيل، محاطة بكثبان رملية. هذه الخلفية الثابتة
-   تُبقي المحتوى مقروءاً (طبقات معتمة فوقها) بينما تمنح الصفحة هويتها البصرية المميزة. */
+/* ============================= خلفية "غروب الوادي" ============================= */
+/* هوية بصرية خاصة بولاية الوادي (السوف): سماء غروب فوق الكثبان الذهبية، أفق مزدحم بالقباب
+   (مدينة الألف قبة وقبة)، غيطان النخيل المحيطة بحفر "الغوط" الفلاحية التقليدية. طبقات معتمة
+   فوقها تُبقي المحتوى مقروءاً بينما تمنح الصفحة هويتها الفريدة. */
 function GhoutBackdrop() {
   return (
     <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
-      {/* توهج الشمس */}
+      {/* سماء الغروب — تدرّج دافئ من الكهرماني إلى الوردي الخافت */}
       <div
-        className="absolute left-1/2 top-[-10%] -translate-x-1/2 w-[140vw] h-[70vh] opacity-[0.16]"
+        className="absolute inset-x-0 top-0 h-[65vh] opacity-[0.20]"
         style={{
           background:
-            'radial-gradient(circle at 50% 0%, #fbbf24 0%, #f59e0b 22%, transparent 65%)',
+            'linear-gradient(180deg, #7c2d12 0%, #c2410c 22%, #f59e0b 46%, #fbbf24 62%, transparent 100%)',
         }}
+      />
+      {/* قرص الشمس الغاربة */}
+      <div
+        className="absolute left-1/2 top-[22%] -translate-x-1/2 -translate-y-1/2 w-[38vmin] h-[38vmin] rounded-full opacity-[0.16]"
+        style={{ background: 'radial-gradient(circle, #fde68a 0%, #f59e0b 55%, transparent 75%)' }}
       />
       {/* أشعة الشمس الدوارة ببطء */}
       <div
-        className="sun-rays absolute left-1/2 top-[-25%] -translate-x-1/2 w-[160vmax] h-[160vmax] opacity-[0.05]"
+        className="sun-rays absolute left-1/2 top-[-10%] -translate-x-1/2 w-[160vmax] h-[160vmax] opacity-[0.04]"
         style={{
           background:
             'repeating-conic-gradient(from 0deg, #fcd34d 0deg 4deg, transparent 4deg 16deg)',
         }}
       />
 
+      {/* أفق "الألف قبة وقبة" — صفّان متراصّان من القباب الصغيرة قرب خط السماء */}
+      <ThousandDomesFrieze opacity={0.07} fill="#fbbf24" />
+      <div className="absolute inset-x-0 bottom-[26%] w-[115%] -left-[7%] opacity-[0.10]">
+        <ThousandDomesFrieze opacity={1} fill="#d97706" />
+      </div>
+
       {/* حلقات الكثبان البعيدة (parallax ثابت) */}
-      <svg className="absolute inset-x-0 bottom-[38%] w-[120%] -left-[10%] opacity-[0.08]" viewBox="0 0 1400 220" preserveAspectRatio="none" fill="none">
+      <svg className="absolute inset-x-0 bottom-[38%] w-[120%] -left-[10%] opacity-[0.09]" viewBox="0 0 1400 220" preserveAspectRatio="none" fill="none">
         <path d="M0 220 L0 140 Q150 90 300 140 T 600 140 T 900 140 T 1200 140 T 1400 140 L1400 220 Z" fill="#f59e0b" />
       </svg>
-      <svg className="absolute inset-x-0 bottom-[18%] w-[130%] -left-[15%] opacity-[0.10]" viewBox="0 0 1400 220" preserveAspectRatio="none" fill="none">
+      <svg className="absolute inset-x-0 bottom-[18%] w-[130%] -left-[15%] opacity-[0.11]" viewBox="0 0 1400 220" preserveAspectRatio="none" fill="none">
         <path d="M0 220 L0 160 Q200 100 400 160 T 800 160 T 1200 160 T 1400 160 L1400 220 Z" fill="#d97706" />
       </svg>
-      {/* الكثيب الأقرب — قاع الغوط */}
-      <svg className="absolute inset-x-0 bottom-0 w-[120%] -left-[10%] opacity-[0.14]" viewBox="0 0 1400 260" preserveAspectRatio="none" fill="none">
+      {/* الكثيب الأقرب — قاع الغوط، رمال ذهبية أدفأ في المقدّمة */}
+      <svg className="absolute inset-x-0 bottom-0 w-[120%] -left-[10%] opacity-[0.16]" viewBox="0 0 1400 260" preserveAspectRatio="none" fill="none">
         <path d="M0 260 L0 190 Q180 120 380 185 T 760 185 T 1140 185 T 1400 185 L1400 260 Z" fill="#92400e" />
       </svg>
 
-      {/* نخيل متناثر حول الغوط */}
+      {/* غيطان النخيل — واحات متناثرة حول حفر الغوط الفلاحية التقليدية */}
       {[
         { x: '8%', y: '58%', s: 0.8 }, { x: '18%', y: '70%', s: 1.1 }, { x: '30%', y: '62%', s: 0.7 },
         { x: '46%', y: '74%', s: 1 }, { x: '60%', y: '60%', s: 0.9 }, { x: '74%', y: '72%', s: 0.75 },
@@ -239,7 +268,7 @@ function GhoutBackdrop() {
 
       {/* تعتيم علوي/سفلي لضمان تباين القراءة فوق الخلفية */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0a0908] via-transparent to-[#0a0908]" />
-      <div className="absolute inset-0 bg-[#0a0908]/70" />
+      <div className="absolute inset-0 bg-[#0a0908]/72" />
     </div>
   );
 }
@@ -269,7 +298,20 @@ function SectionEyebrow({
   );
 }
 
-export default function ExploreClient({
+/* ============================= الغلاف الخارجي: يوفّر سياق اللغة ============================= */
+export default function ExploreClient(props: {
+  places: Place[];
+  oldMemories: OldMemory[];
+  testimonials: Testimonial[];
+}) {
+  return (
+    <LanguageProvider>
+      <ExploreClientInner {...props} />
+    </LanguageProvider>
+  );
+}
+
+function ExploreClientInner({
   places,
   oldMemories,
   testimonials,
@@ -278,10 +320,11 @@ export default function ExploreClient({
   oldMemories: OldMemory[];
   testimonials: Testimonial[];
 }) {
+  const { dir, t } = useLanguage();
   const [activePlace, setActivePlace] = useState<Place | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<string>('الكل');
+  const [activeCategory, setActiveCategory] = useState<string>('__all__');
   const [favorites, setFavorites] = useState<Set<string | number>>(new Set());
 
   // تحميل المفضلة من التخزين المحلي عند فتح الصفحة
@@ -311,12 +354,12 @@ export default function ExploreClient({
   const categories = useMemo(() => {
     const set = new Set<string>();
     places.forEach((p) => p.category && set.add(p.category));
-    return ['الكل', ...Array.from(set)];
+    return ['__all__', ...Array.from(set)];
   }, [places]);
 
   const filteredPlaces = useMemo(() => {
     return places.filter((p) => {
-      const matchCategory = activeCategory === 'الكل' || p.category === activeCategory;
+      const matchCategory = activeCategory === '__all__' || p.category === activeCategory;
       const matchSearch =
         !searchQuery.trim() ||
         p.name?.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
@@ -327,7 +370,7 @@ export default function ExploreClient({
 
   return (
     <div
-      dir="rtl"
+      dir={dir}
       className="relative min-h-screen bg-[#0a0908] text-white selection:bg-amber-500/30"
       style={{ fontFamily: "'Tajawal', 'IBM Plex Sans Arabic', sans-serif" }}
     >
@@ -388,6 +431,7 @@ export default function ExploreClient({
 }
 
 function TopNav() {
+  const { t } = useLanguage();
   return (
     <nav className="sticky top-0 z-40 bg-[#0a0908]/80 backdrop-blur-xl border-b border-white/5 px-4 py-3.5">
       <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -397,12 +441,17 @@ function TopNav() {
             سوف <span className="text-amber-500">360</span>
           </span>
         </div>
-        <Link
-          href="/"
-          className="flex items-center gap-1 text-sm font-bold text-stone-400 hover:text-white transition bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full"
-        >
-          <ChevronRight size={16} /> الرئيسية
-        </Link>
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher compact />
+          <Link
+            href="/"
+            className="flex items-center gap-1 text-sm font-bold text-stone-400 hover:text-white transition bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full"
+          >
+            <ChevronRight size={16} className="rtl:inline ltr:hidden" />
+            <ChevronLeft size={16} className="rtl:hidden ltr:inline" />
+            {t('home')}
+          </Link>
+        </div>
       </div>
     </nav>
   );
@@ -417,11 +466,12 @@ function Hero({
   oldMemories: OldMemory[];
   testimonials: Testimonial[];
 }) {
+  const { t } = useLanguage();
   const stats = [
-    { icon: Compass, label: 'معالم موثّقة', value: `${places.length}+` },
-    { icon: Camera, label: 'ذكريات أرشيفية', value: `${oldMemories.length}+` },
-    { icon: Award, label: 'تجارب زوار', value: `${testimonials.length}+` },
-    { icon: Clock3, label: 'محدّث باستمرار', value: '24/7' },
+    { icon: Compass, label: t('statLandmarks'), value: `${places.length}+` },
+    { icon: Camera, label: t('statMemories'), value: `${oldMemories.length}+` },
+    { icon: Award, label: t('statTestimonials'), value: `${testimonials.length}+` },
+    { icon: Clock3, label: t('statLive'), value: '24/7' },
   ];
 
   return (
@@ -433,7 +483,7 @@ function Hero({
             backgroundImage: `url('https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1600&auto=format&fit=crop')`,
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-950/70 via-black/30 to-[#0a0908]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-orange-950/60 via-black/30 to-[#0a0908]" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0908] via-transparent to-transparent" />
         <div className="absolute inset-0 bg-amber-900/10 mix-blend-overlay" />
 
@@ -442,17 +492,16 @@ function Hero({
         <div className="relative z-10 h-full max-w-5xl mx-auto px-4 sm:px-6 flex flex-col justify-end pb-14 sm:pb-20">
           <div className="rise-1 inline-flex items-center gap-2 w-max bg-amber-500/15 border border-amber-400/40 px-3.5 py-1.5 rounded-full text-amber-300 text-[11px] font-bold tracking-wide backdrop-blur-md mb-4">
             <Sun size={13} className="text-amber-400" />
-            <span>الجزائر — ولاية الوادي (السوف)</span>
+            <span>{t('heroBadge')}</span>
           </div>
 
           <h1 className="rise-2 text-3xl sm:text-5xl md:text-6xl font-black leading-[1.1] mb-3 max-w-3xl drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)]">
-            اكتشف المعالم
+            {t('heroTitle1')}
             <br />
-            <span className="text-amber-500">مدينة الألف قبة</span>
+            <span className="text-amber-500">{t('heroTitle2')}</span>
           </h1>
           <p className="rise-3 text-stone-300 text-xs sm:text-base max-w-xl leading-relaxed font-medium">
-            دليلك الكامل لأجمل الوجهات في الوادي: قِباب أصيلة، غيطان نخيل، وكثبان ذهبية —
-            كل معلم موثّق بصوره وموقعه على الخريطة.
+            {t('heroDesc')}
           </p>
         </div>
       </div>
@@ -470,6 +519,89 @@ function Hero({
         </div>
       </div>
     </header>
+  );
+}
+
+/* بطاقة معلم واحدة — نصوص الاسم/الوصف القادمة من قاعدة البيانات تُترجم آلياً عبر useAutoTranslate */
+function PlaceCard({
+  place,
+  isFav,
+  onOpen,
+  onToggleFavorite,
+  onShowOnMap,
+}: {
+  place: Place;
+  isFav: boolean;
+  onOpen: () => void;
+  onToggleFavorite: () => void;
+  onShowOnMap: () => void;
+}) {
+  const { t } = useLanguage();
+  const placeImgs = getPlaceImages(place);
+  const coverImg = placeImgs[0];
+  const name = useAutoTranslate(place.name);
+  const description = useAutoTranslate(place.description);
+  const category = useAutoTranslate(place.category);
+
+  return (
+    <div className="group relative rounded-[1.5rem] overflow-hidden border border-white/5 bg-[#15120e] shadow-lg hover:shadow-amber-500/10 hover:-translate-y-1 hover:border-amber-500/20 transition-all duration-300">
+      <button onClick={onOpen} className="block w-full text-start" aria-label={name}>
+        <div className="relative h-48">
+          <img
+            src={coverImg}
+            alt={name}
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = FALLBACK_IMG;
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#15120e] via-[#15120e]/20 to-transparent" />
+          {place.category && (
+            <span className="absolute top-3 end-3 bg-black/40 backdrop-blur text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-400/20">
+              {category}
+            </span>
+          )}
+        </div>
+        <div className="p-4 sm:p-5 pb-0">
+          <h3 className="text-base sm:text-lg font-bold mb-1 text-white">{name}</h3>
+          <p className="text-stone-400 text-xs line-clamp-2 leading-relaxed mb-4">{description}</p>
+        </div>
+      </button>
+
+      {/* زر المفضلة — يعمل فعلياً ويُخزَّن محلياً */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleFavorite();
+        }}
+        aria-label={isFav ? t('removeFromFavorites') : t('addToFavorites')}
+        className={`absolute top-3 start-3 rounded-full p-1.5 backdrop-blur border transition ${
+          isFav ? 'bg-amber-500 border-amber-500 text-black' : 'bg-black/40 border-white/10 text-white hover:border-amber-400/50'
+        }`}
+      >
+        <Heart size={14} fill={isFav ? 'currentColor' : 'none'} />
+      </button>
+
+      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0 flex gap-2">
+        <button
+          onClick={onOpen}
+          className="flex-1 bg-white/5 group-hover:bg-amber-500 group-hover:text-black text-white text-xs sm:text-sm font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors border border-white/5"
+        >
+          {t('viewDetailsNav')} <ChevronLeft size={16} className="rtl:inline ltr:hidden" />
+          <ChevronRight size={16} className="rtl:hidden ltr:inline" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onShowOnMap();
+          }}
+          aria-label={t('showOnPlatformMap')}
+          className="shrink-0 flex items-center justify-center w-10 sm:w-11 bg-white/5 hover:bg-white/10 text-stone-300 hover:text-amber-300 rounded-xl border border-white/5 transition"
+        >
+          <MapPin size={15} />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -497,43 +629,39 @@ function LandmarksSection({
   onOpen: (p: Place) => void;
 }) {
   const router = useRouter();
+  const { t } = useLanguage();
 
   return (
     <section>
       <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
         <SectionEyebrow
           icon={MapPin}
-          eyebrow="الوجهات"
-          title="اكتشف المعالم"
-          subtitle={`أروع الوجهات السياحية والتاريخية في ولاية الوادي (${totalCount})`}
+          eyebrow={t('destinationsEyebrow')}
+          title={t('discoverLandmarks')}
+          subtitle={`${t('landmarksSubtitle')} (${totalCount})`}
         />
       </div>
 
       {/* شريط البحث والتصفية حسب الفئة — أزرار مفعّلة فعلياً على بيانات places */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-500" size={16} />
+          <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 text-stone-500" size={16} />
           <input
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="ابحث عن معلم بالاسم أو الوصف..."
-            className="w-full bg-white/5 border border-white/10 focus:border-amber-500/50 rounded-xl pr-10 pl-3 py-2.5 text-sm outline-none transition placeholder:text-stone-500"
+            placeholder={t('searchPlaceholder')}
+            className="w-full bg-white/5 border border-white/10 focus:border-amber-500/50 rounded-xl ps-10 pe-3 py-2.5 text-sm outline-none transition placeholder:text-stone-500"
           />
         </div>
         {categories.length > 1 && (
           <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
             {categories.map((cat) => (
-              <button
+              <CategoryButton
                 key={cat}
+                cat={cat}
+                active={activeCategory === cat}
                 onClick={() => onCategoryChange(cat)}
-                className={`shrink-0 flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl border transition ${
-                  activeCategory === cat
-                    ? 'bg-amber-500 text-black border-amber-500'
-                    : 'bg-white/5 text-stone-300 border-white/10 hover:border-amber-500/40 hover:text-amber-300'
-                }`}
-              >
-                <Tag size={12} /> {cat}
-              </button>
+              />
             ))}
           </div>
         )}
@@ -541,91 +669,128 @@ function LandmarksSection({
 
       {places.length === 0 ? (
         <div className="text-center py-10 bg-white/5 rounded-2xl border border-white/5">
-          <p className="text-stone-400">
-            {totalCount === 0 ? 'لا توجد معالم مضافة حالياً.' : 'لا توجد نتائج مطابقة لبحثك.'}
-          </p>
+          <p className="text-stone-400">{totalCount === 0 ? t('noPlacesYet') : t('noSearchResults')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {places.map((place) => {
-            const placeImgs = getPlaceImages(place);
-            const coverImg = placeImgs[0];
-            const isFav = favorites.has(place.id);
-
-            return (
-              <div
-                key={place.id}
-                className="group relative rounded-[1.5rem] overflow-hidden border border-white/5 bg-[#15120e] shadow-lg hover:shadow-amber-500/10 hover:-translate-y-1 hover:border-amber-500/20 transition-all duration-300"
-              >
-                <button
-                  onClick={() => onOpen(place)}
-                  className="block w-full text-right"
-                  aria-label={`عرض تفاصيل ${place.name}`}
-                >
-                  <div className="relative h-48">
-                    <img
-                      src={coverImg}
-                      alt={place.name}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = FALLBACK_IMG;
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#15120e] via-[#15120e]/20 to-transparent" />
-                    {place.category && (
-                      <span className="absolute top-3 right-3 bg-black/40 backdrop-blur text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-400/20">
-                        {place.category}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-4 sm:p-5 pb-0">
-                    <h3 className="text-base sm:text-lg font-bold mb-1 text-white">{place.name}</h3>
-                    <p className="text-stone-400 text-xs line-clamp-2 leading-relaxed mb-4">
-                      {place.description}
-                    </p>
-                  </div>
-                </button>
-
-                {/* زر المفضلة — يعمل فعلياً ويُخزَّن محلياً */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleFavorite(place.id);
-                  }}
-                  aria-label={isFav ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
-                  className={`absolute top-3 left-3 rounded-full p-1.5 backdrop-blur border transition ${
-                    isFav
-                      ? 'bg-amber-500 border-amber-500 text-black'
-                      : 'bg-black/40 border-white/10 text-white hover:border-amber-400/50'
-                  }`}
-                >
-                  <Heart size={14} fill={isFav ? 'currentColor' : 'none'} />
-                </button>
-
-                <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0 flex gap-2">
-                  <button
-                    onClick={() => onOpen(place)}
-                    className="flex-1 bg-white/5 group-hover:bg-amber-500 group-hover:text-black text-white text-xs sm:text-sm font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors border border-white/5"
-                  >
-                    عرض التفاصيل والملاحة <ChevronLeft size={16} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(buildInternalMapUrl(place));
-                    }}
-                    aria-label={`إظهار ${place.name} على خريطة المنصة`}
-                    className="shrink-0 flex items-center justify-center w-10 sm:w-11 bg-white/5 hover:bg-white/10 text-stone-300 hover:text-amber-300 rounded-xl border border-white/5 transition"
-                  >
-                    <MapPin size={15} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {places.map((place) => (
+            <PlaceCard
+              key={place.id}
+              place={place}
+              isFav={favorites.has(place.id)}
+              onOpen={() => onOpen(place)}
+              onToggleFavorite={() => onToggleFavorite(place.id)}
+              onShowOnMap={() => router.push(buildInternalMapUrl(place))}
+            />
+          ))}
         </div>
       )}
     </section>
+  );
+}
+
+function CategoryButton({ cat, active, onClick }: { cat: string; active: boolean; onClick: () => void }) {
+  const { t } = useLanguage();
+  const label = useAutoTranslate(cat === '__all__' ? null : cat);
+  const display = cat === '__all__' ? t('categoryAll') : label;
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl border transition ${
+        active
+          ? 'bg-amber-500 text-black border-amber-500'
+          : 'bg-white/5 text-stone-300 border-white/10 hover:border-amber-500/40 hover:text-amber-300'
+      }`}
+    >
+      <Tag size={12} /> {display}
+    </button>
+  );
+}
+
+/* ============================= معرض صور قابل للسحب (Swipe) ============================= */
+function SwipeableGallery({
+  images,
+  activeIdx,
+  setActiveIdx,
+  alt,
+}: {
+  images: string[];
+  activeIdx: number;
+  setActiveIdx: (i: number) => void;
+  alt: string;
+}) {
+  const { t } = useLanguage();
+  const startX = useRef<number | null>(null);
+  const deltaX = useRef(0);
+  const [dragging, setDragging] = useState(false);
+
+  const nextImg = () => setActiveIdx((activeIdx + 1) % images.length);
+  const prevImg = () => setActiveIdx((activeIdx - 1 + images.length) % images.length);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (images.length <= 1) return;
+    startX.current = e.clientX;
+    deltaX.current = 0;
+    setDragging(true);
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (startX.current === null) return;
+    deltaX.current = e.clientX - startX.current;
+  };
+  const onPointerUp = () => {
+    if (startX.current === null) return;
+    const threshold = 50;
+    if (deltaX.current > threshold) prevImg();
+    else if (deltaX.current < -threshold) nextImg();
+    startX.current = null;
+    deltaX.current = 0;
+    setDragging(false);
+  };
+
+  return (
+    <div
+      className="relative h-56 sm:h-72 bg-black/40 touch-pan-y select-none cursor-grab active:cursor-grabbing"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerUp}
+    >
+      <img
+        src={images[activeIdx]}
+        alt={`${alt} - ${activeIdx + 1}`}
+        draggable={false}
+        className={`w-full h-full object-cover transition-opacity ${dragging ? 'opacity-90' : ''}`}
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = FALLBACK_IMG;
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#171310] via-transparent to-black/20 pointer-events-none" />
+
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={prevImg}
+            aria-label={t('previousImage')}
+            className="absolute top-1/2 -translate-y-1/2 start-3 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition"
+          >
+            <ChevronRight size={18} className="rtl:inline ltr:hidden" />
+            <ChevronLeft size={18} className="rtl:hidden ltr:inline" />
+          </button>
+          <button
+            onClick={nextImg}
+            aria-label={t('nextImage')}
+            className="absolute top-1/2 -translate-y-1/2 end-3 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition"
+          >
+            <ChevronLeft size={18} className="rtl:inline ltr:hidden" />
+            <ChevronRight size={18} className="rtl:hidden ltr:inline" />
+          </button>
+          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-amber-300 text-[11px] font-bold px-2.5 py-1 rounded-full">
+            {activeIdx + 1} / {images.length}
+          </span>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -641,21 +806,14 @@ function PlaceModal({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [navigating, setNavigating] = useState(false);
-  const [navigateError, setNavigateError] = useState('');
+  const { t } = useLanguage();
   const [activeImg, setActiveImg] = useState(0);
   const [copied, setCopied] = useState(false);
 
   const images = useMemo(() => getPlaceImages(place), [place]);
-
-  const handleInternalNavigate = () => {
-    if (!place.name) {
-      setNavigateError('اسم المعلم غير متوفر حالياً.');
-      return;
-    }
-    setNavigating(true);
-    router.push(buildInternalMapUrl(place, true));
-  };
+  const name = useAutoTranslate(place.name);
+  const description = useAutoTranslate(place.description);
+  const category = useAutoTranslate(place.category);
 
   const handleShowOnMap = () => {
     router.push(buildInternalMapUrl(place));
@@ -664,7 +822,7 @@ function PlaceModal({
   const handleShare = async () => {
     const shareData = {
       title: place.name,
-      text: place.description || `اكتشف ${place.name} عبر سوف 360`,
+      text: place.description || name,
       url: typeof window !== 'undefined' ? window.location.href : '',
     };
     try {
@@ -680,12 +838,8 @@ function PlaceModal({
     }
   };
 
-  const nextImg = () => setActiveImg((i) => (i + 1) % images.length);
-  const prevImg = () => setActiveImg((i) => (i - 1 + images.length) % images.length);
-
   return (
     <div
-      dir="rtl"
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md p-0 sm:p-6"
       onClick={onClose}
     >
@@ -695,68 +849,41 @@ function PlaceModal({
       >
         <button
           onClick={onClose}
-          aria-label="إغلاق"
-          className="absolute top-4 left-4 z-30 bg-black/60 hover:bg-black/90 text-white rounded-full p-2 transition shadow-lg"
+          aria-label={t('close')}
+          className="absolute top-4 end-4 z-30 bg-black/60 hover:bg-black/90 text-white rounded-full p-2 transition shadow-lg"
         >
           <X size={18} />
         </button>
 
         <div className="relative">
-          <div className="relative h-56 sm:h-72 bg-black/40">
-            <img
-              src={images[activeImg]}
-              alt={`${place.name} - صورة ${activeImg + 1}`}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = FALLBACK_IMG;
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#171310] via-transparent to-black/20" />
-
-            {images.length > 1 && (
-              <>
-                <button
-                  onClick={prevImg}
-                  aria-label="الصورة السابقة"
-                  className="absolute top-1/2 -translate-y-1/2 right-3 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition"
-                >
-                  <ChevronRight size={18} />
-                </button>
-                <button
-                  onClick={nextImg}
-                  aria-label="الصورة التالية"
-                  className="absolute top-1/2 -translate-y-1/2 left-3 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-amber-300 text-[11px] font-bold px-2.5 py-1 rounded-full">
-                  {activeImg + 1} / {images.length}
-                </span>
-              </>
-            )}
-          </div>
+          <SwipeableGallery images={images} activeIdx={activeImg} setActiveIdx={setActiveImg} alt={name} />
 
           {images.length > 1 && (
-            <div className="flex overflow-x-auto gap-2 p-3 bg-[#12100c] border-b border-white/5">
-              {images.map((imgUrl, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setActiveImg(idx)}
-                  className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition ${
-                    idx === activeImg ? 'border-amber-500' : 'border-transparent opacity-60 hover:opacity-100'
-                  }`}
-                >
-                  <img
-                    src={imgUrl}
-                    alt=""
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = FALLBACK_IMG;
-                    }}
-                  />
-                </button>
-              ))}
-            </div>
+            <>
+              <div className="flex overflow-x-auto gap-2 p-3 bg-[#12100c] border-b border-white/5">
+                {images.map((imgUrl, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImg(idx)}
+                    className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition ${
+                      idx === activeImg ? 'border-amber-500' : 'border-transparent opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <img
+                      src={imgUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = FALLBACK_IMG;
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+              <p className="text-center text-[10px] text-stone-500 py-1.5 bg-[#12100c] border-b border-white/5">
+                {t('swipeHint')}
+              </p>
+            </>
           )}
         </div>
 
@@ -764,25 +891,23 @@ function PlaceModal({
           <div className="flex items-start justify-between gap-3 mb-3">
             {place.category ? (
               <span className="bg-amber-500/20 text-amber-400 text-[11px] font-bold px-2.5 py-1 rounded-full border border-amber-500/20 inline-block">
-                {place.category}
+                {category}
               </span>
             ) : <span />}
 
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={onToggleFavorite}
-                aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+                aria-label={isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
                 className={`rounded-full p-2 border transition ${
-                  isFavorite
-                    ? 'bg-amber-500 border-amber-500 text-black'
-                    : 'bg-white/5 border-white/10 text-white hover:border-amber-400/50'
+                  isFavorite ? 'bg-amber-500 border-amber-500 text-black' : 'bg-white/5 border-white/10 text-white hover:border-amber-400/50'
                 }`}
               >
                 <Heart size={15} fill={isFavorite ? 'currentColor' : 'none'} />
               </button>
               <button
                 onClick={handleShare}
-                aria-label="مشاركة المعلم"
+                aria-label={t('shareLandmark')}
                 className="rounded-full p-2 border bg-white/5 border-white/10 text-white hover:border-amber-400/50 transition"
               >
                 {copied ? <Check size={15} className="text-emerald-400" /> : <Share2 size={15} />}
@@ -790,34 +915,31 @@ function PlaceModal({
             </div>
           </div>
 
-          <h3 className="text-xl sm:text-2xl font-black mb-2 text-white">{place.name}</h3>
-          <p className="text-stone-300 text-xs sm:text-sm leading-relaxed mb-6">{place.description}</p>
+          <h3 className="text-xl sm:text-2xl font-black mb-4 text-white">{name}</h3>
 
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            <button
-              onClick={handleInternalNavigate}
-              disabled={navigating}
-              className="flex-1 bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-black font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition shadow-lg text-sm"
-            >
-              {navigating ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" /> جارٍ فتح الخريطة...
-                </>
-              ) : (
-                <>
-                  <Navigation size={18} /> ابدأ الملاحة عبر خريطة سوف 360
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={handleShowOnMap}
-              className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white font-bold py-3.5 px-4 rounded-2xl border border-white/10 transition text-sm"
-            >
-              <MapPin size={16} /> إظهار على الخريطة
-            </button>
+          {/* قسم "معلومات عن المعلم" — يحل محل زر بدء الملاحة السابق ويعرض تفاصيل أوسع بدلاً منه */}
+          <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 sm:p-5 mb-6">
+            <div className="flex items-center gap-2 mb-2.5 text-amber-400">
+              <Info size={15} />
+              <span className="text-xs font-bold">{t('aboutLandmark')}</span>
+            </div>
+            <p className="text-stone-300 text-xs sm:text-sm leading-relaxed">
+              {description || t('noDescription')}
+            </p>
+            {place.category && (
+              <div className="flex items-center gap-1.5 mt-3 text-[11px] text-stone-400">
+                <Tag size={11} className="text-amber-500/70" />
+                <span>{t('category')}: <span className="text-stone-300 font-bold">{category}</span></span>
+              </div>
+            )}
           </div>
-          {navigateError && <p className="text-amber-300 text-xs mt-2 text-center">{navigateError}</p>}
+
+          <button
+            onClick={handleShowOnMap}
+            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold py-3.5 rounded-2xl border border-amber-500 transition text-sm shadow-lg"
+          >
+            <Navigation2 size={16} /> {t('showOnMap')}
+          </button>
         </div>
       </div>
     </div>
@@ -825,66 +947,66 @@ function PlaceModal({
 }
 
 function MemoriesGallery({ memories }: { memories: OldMemory[] }) {
+  const { t } = useLanguage();
   return (
     <section>
       <SectionEyebrow
         icon={Camera}
-        eyebrow="الأرشيف"
-        title="ذكريات قديمة"
-        subtitle="لمحات من الأرشيف تحكي وجه الوادي عبر الزمن"
+        eyebrow={t('archiveEyebrow')}
+        title={t('oldMemories')}
+        subtitle={t('memoriesSubtitle')}
       />
 
       {memories.length === 0 ? (
         <div className="text-center py-10 bg-white/5 rounded-2xl border border-white/5">
-          <p className="text-stone-400">لم تُضَف صور أرشيفية بعد.</p>
+          <p className="text-stone-400">{t('noMemoriesYet')}</p>
         </div>
       ) : (
         <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 space-y-3">
-          {memories.map((m) => {
-            const mImgs = parseImages(m.image_url);
-            const imgSrc = mImgs[0] || FALLBACK_IMG;
-
-            return (
-              <div
-                key={m.id}
-                className="relative break-inside-avoid rounded-xl overflow-hidden border border-white/5 group"
-              >
-                <img
-                  src={imgSrc}
-                  alt={m.caption || 'ذكرى قديمة'}
-                  className="w-full object-cover sepia-[.35] contrast-105 group-hover:sepia-0 transition-all duration-500"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = FALLBACK_IMG;
-                  }}
-                />
-                {(m.caption || m.year) && (
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2.5">
-                    <p className="text-white text-xs font-bold">{m.caption}</p>
-                    {m.year && <p className="text-amber-300 text-[10px]">{m.year}</p>}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {memories.map((m) => (
+            <MemoryTile key={m.id} memory={m} />
+          ))}
         </div>
       )}
     </section>
   );
 }
 
+function MemoryTile({ memory }: { memory: OldMemory }) {
+  const mImgs = parseImages(memory.image_url);
+  const imgSrc = mImgs[0] || FALLBACK_IMG;
+  const caption = useAutoTranslate(memory.caption);
+
+  return (
+    <div className="relative break-inside-avoid rounded-xl overflow-hidden border border-white/5 group">
+      <img
+        src={imgSrc}
+        alt={caption || 'memory'}
+        className="w-full object-cover sepia-[.35] contrast-105 group-hover:sepia-0 transition-all duration-500"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = FALLBACK_IMG;
+        }}
+      />
+      {(memory.caption || memory.year) && (
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2.5">
+          <p className="text-white text-xs font-bold">{caption}</p>
+          {memory.year && <p className="text-amber-300 text-[10px]">{memory.year}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WilayaIntro() {
+  const { t } = useLanguage();
   return (
     <section className="relative rounded-[1.75rem] overflow-hidden border border-amber-500/10 bg-gradient-to-br from-[#1a140c] to-[#0f0c08] p-6 sm:p-10 text-center">
-      <div className="absolute -top-16 -left-16 w-56 h-56 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-16 -right-16 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-16 -start-16 w-56 h-56 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-16 -end-16 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
       <LandmarkIcon className="relative mx-auto text-amber-500 mb-3" size={26} />
-      <h3 className="relative text-xl sm:text-3xl font-black mb-3 text-white">
-        مدينة الألف قبة والأصالة العريقة
-      </h3>
+      <h3 className="relative text-xl sm:text-3xl font-black mb-3 text-white">{t('wilayaTitle')}</h3>
       <p className="relative text-stone-300 text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
-        تُعد ولاية الوادي (السوف) واحدة من أبرز الوجهات السياحية والثقافية في الجزائر، حيث
-        تدمج بفرادة بين عبق التاريخ، وعمارة القباب التقليدية المميزة، وغيطان النخيل الممتدة،
-        وسحر الكثبان الرملية الذهبية. إنها أرض الكرم والفلاحة الواحاتية.
+        {t('wilayaDesc')}
       </p>
     </section>
   );
@@ -897,59 +1019,63 @@ function VisitorExperiences({
   testimonials: Testimonial[];
   onShare: () => void;
 }) {
+  const { t } = useLanguage();
   return (
     <section>
       <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
         <SectionEyebrow
           icon={Sparkles}
-          eyebrow="المجتمع"
-          title="تجارب الزوار"
-          subtitle="قصص وذكريات يشاركها زوار ولاية الوادي"
+          eyebrow={t('communityEyebrow')}
+          title={t('visitorExperiences')}
+          subtitle={t('experiencesSubtitle')}
         />
         <button
           onClick={onShare}
           className="bg-amber-500 hover:bg-amber-400 text-black font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 text-xs sm:text-sm transition shrink-0"
         >
-          <Upload size={14} /> شارك تجربتك
+          <Upload size={14} /> {t('shareYourExperience')}
         </button>
       </div>
 
       {testimonials.length === 0 ? (
         <div className="text-center py-10 bg-white/5 rounded-2xl border border-white/5">
-          <p className="text-stone-400">كن أول من يشارك تجربته في ولاية الوادي!</p>
+          <p className="text-stone-400">{t('beFirstToShare')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {testimonials.map((t) => {
-            const tPhotos = parseImages(t.photos);
-
-            return (
-              <div
-                key={t.id}
-                className="bg-[#15120e] rounded-2xl overflow-hidden border border-white/5 shadow-lg p-4"
-              >
-                {tPhotos.length > 0 && (
-                  <div className="flex overflow-x-auto gap-2 mb-3 pb-1">
-                    {tPhotos.map((p, idx) => (
-                      <img key={idx} src={p} className="w-16 h-16 rounded-lg object-cover shrink-0 border border-white/10" alt="" />
-                    ))}
-                  </div>
-                )}
-                <Quote className="text-amber-500/50 mb-2" size={16} />
-                <p className="text-stone-300 text-xs sm:text-sm leading-relaxed line-clamp-3 mb-3">
-                  {t.message}
-                </p>
-                <p className="text-amber-400 text-xs font-bold">{t.name || 'زائر'}</p>
-              </div>
-            );
-          })}
+          {testimonials.map((tst) => (
+            <TestimonialCard key={tst.id} testimonial={tst} />
+          ))}
         </div>
       )}
     </section>
   );
 }
 
+function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
+  const { t } = useLanguage();
+  const tPhotos = parseImages(testimonial.photos);
+  const message = useAutoTranslate(testimonial.message);
+  const name = useAutoTranslate(testimonial.name);
+
+  return (
+    <div className="bg-[#15120e] rounded-2xl overflow-hidden border border-white/5 shadow-lg p-4">
+      {tPhotos.length > 0 && (
+        <div className="flex overflow-x-auto gap-2 mb-3 pb-1">
+          {tPhotos.map((p, idx) => (
+            <img key={idx} src={p} className="w-16 h-16 rounded-lg object-cover shrink-0 border border-white/10" alt="" />
+          ))}
+        </div>
+      )}
+      <Quote className="text-amber-500/50 mb-2" size={16} />
+      <p className="text-stone-300 text-xs sm:text-sm leading-relaxed line-clamp-3 mb-3">{message}</p>
+      <p className="text-amber-400 text-xs font-bold">{name || t('visitorFallbackName')}</p>
+    </div>
+  );
+}
+
 function ShareExperienceModal({ onClose }: { onClose: () => void }) {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -959,20 +1085,25 @@ function ShareExperienceModal({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = async () => {
     if (!message.trim()) {
-      setError('يرجى كتابة نص تجربتك أولاً.');
+      setError(t('messageRequired'));
       return;
     }
     setSubmitting(true);
     setError('');
     try {
       const uploadedUrls: string[] = [];
+
+      // نرفع الصور واحدة تلو الأخرى؛ أي خطأ في الرفع (bucket غير موجود، صلاحيات RLS...) يُبلَّغ بوضوح
       for (const file of files) {
-        const path = `testimonials/${Date.now()}-${file.name}`;
+        const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const path = `testimonials/${Date.now()}-${safeName}`;
         const { error: uploadErr } = await supabase.storage
-          .from('testimonials-photos')
-          .upload(path, file);
-        if (uploadErr) throw uploadErr;
-        const { data } = supabase.storage.from('testimonials-photos').getPublicUrl(path);
+          .from(TESTIMONIALS_BUCKET)
+          .upload(path, file, { cacheControl: '3600', upsert: false });
+        if (uploadErr) {
+          throw new Error(`upload:${uploadErr.message}`);
+        }
+        const { data } = supabase.storage.from(TESTIMONIALS_BUCKET).getPublicUrl(path);
         uploadedUrls.push(data.publicUrl);
       }
 
@@ -982,11 +1113,23 @@ function ShareExperienceModal({ onClose }: { onClose: () => void }) {
         photos: uploadedUrls,
         status: 'pending',
       });
-      if (insertErr) throw insertErr;
+      if (insertErr) {
+        throw new Error(`insert:${insertErr.message}`);
+      }
 
       setDone(true);
-    } catch {
-      setError('حدث خطأ أثناء إرسال تجربتك، حاول مرة أخرى.');
+    } catch (err: any) {
+      // نعرض رسالة السبب الحقيقي في الطرفية للمطوّر (console) مع إبقاء رسالة عربية مبسّطة للزائر،
+      // حتى يسهل تشخيص مشاكل شائعة مثل: اسم bucket غير مطابق، أو سياسات RLS تمنع الإدراج/الرفع لمستخدم مجهول.
+      console.error('فشل إرسال تجربة الزائر:', err);
+      const raw = String(err?.message || '');
+      if (raw.startsWith('upload:')) {
+        setError(`${t('sendError')} (${raw.replace('upload:', '')})`);
+      } else if (raw.startsWith('insert:')) {
+        setError(`${t('sendError')} (${raw.replace('insert:', '')})`);
+      } else {
+        setError(t('sendError'));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -994,7 +1137,6 @@ function ShareExperienceModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      dir="rtl"
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={onClose}
     >
@@ -1004,7 +1146,8 @@ function ShareExperienceModal({ onClose }: { onClose: () => void }) {
       >
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 bg-white/5 hover:bg-white/10 text-white rounded-full p-1.5 transition"
+          aria-label={t('close')}
+          className="absolute top-4 end-4 bg-white/5 hover:bg-white/10 text-white rounded-full p-1.5 transition"
         >
           <X size={16} />
         </button>
@@ -1012,18 +1155,18 @@ function ShareExperienceModal({ onClose }: { onClose: () => void }) {
         {done ? (
           <div className="text-center py-6">
             <MessageSquareHeart className="mx-auto text-amber-500 mb-3" size={32} />
-            <h3 className="text-lg font-bold mb-1">شكراً لمشاركتك!</h3>
-            <p className="text-stone-400 text-xs">تجربتك قيد المراجعة وستظهر قريباً.</p>
+            <h3 className="text-lg font-bold mb-1">{t('thankYouForSharing')}</h3>
+            <p className="text-stone-400 text-xs">{t('pendingReviewNote')}</p>
           </div>
         ) : (
           <>
-            <h3 className="text-lg font-bold mb-1">شارك تجربتك</h3>
-            <p className="text-stone-400 text-xs mb-4">تُعرض بعد مراجعة المشرفين.</p>
+            <h3 className="text-lg font-bold mb-1">{t('shareYourExperience')}</h3>
+            <p className="text-stone-400 text-xs mb-4">{t('shareModerationNote')}</p>
 
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="اسمك الكريم (اختياري)"
+              placeholder={t('yourNameOptional')}
               className="w-full bg-[#0a0908] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm mb-3 outline-none focus:border-amber-500/50"
             />
 
@@ -1031,13 +1174,13 @@ function ShareExperienceModal({ onClose }: { onClose: () => void }) {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={3}
-              placeholder="كيف كانت رحلتك في الوادي؟"
+              placeholder={t('howWasYourTrip')}
               className="w-full bg-[#0a0908] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm mb-3 outline-none focus:border-amber-500/50 resize-none"
             />
 
             <label className="flex items-center justify-center gap-2 border border-dashed border-white/15 rounded-xl py-3 text-xs text-stone-400 cursor-pointer hover:border-amber-500/40 transition mb-3">
               <ImageIcon size={16} className="text-amber-400" />
-              {files.length > 0 ? `${files.length} صورة مختارة` : 'أرفق صوراً (اختياري)'}
+              {files.length > 0 ? `${files.length} ${t('photosSelected')}` : t('attachPhotosOptional')}
               <input
                 type="file"
                 accept="image/*"
@@ -1056,7 +1199,7 @@ function ShareExperienceModal({ onClose }: { onClose: () => void }) {
               disabled={submitting}
               className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-black font-bold py-2.5 rounded-xl text-xs sm:text-sm transition"
             >
-              {submitting ? 'جارٍ الإرسال...' : 'إرسال تجربتي'}
+              {submitting ? t('sending') : t('sendMyExperience')}
             </button>
           </>
         )}
@@ -1066,21 +1209,20 @@ function ShareExperienceModal({ onClose }: { onClose: () => void }) {
 }
 
 function Footer() {
+  const { t } = useLanguage();
   return (
     <footer className="relative z-10 border-t border-white/5 bg-[#080706]">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-start">
         <div className="flex items-center gap-2">
           <LogoMark size={22} className="text-amber-500" />
           <span className="text-base font-black text-white">
             سوف <span className="text-amber-500">360</span>
           </span>
         </div>
-        <p className="text-stone-500 text-xs max-w-sm">
-          المنصة السياحية الرسمية لوادي سوف — دليلك الرقمي لاكتشاف مدينة الألف قبة وقبة.
-        </p>
+        <p className="text-stone-500 text-xs max-w-sm">{t('footerDesc')}</p>
         <div className="flex items-center gap-4 text-xs font-bold">
-          <Link href="/" className="text-stone-400 hover:text-amber-400 transition">الرئيسية</Link>
-          <Link href="/map" className="text-stone-400 hover:text-amber-400 transition">الخريطة</Link>
+          <Link href="/" className="text-stone-400 hover:text-amber-400 transition">{t('home')}</Link>
+          <Link href="/map" className="text-stone-400 hover:text-amber-400 transition">{t('map')}</Link>
         </div>
       </div>
     </footer>
