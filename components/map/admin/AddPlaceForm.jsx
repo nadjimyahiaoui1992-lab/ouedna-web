@@ -176,10 +176,18 @@ export default function AddPlaceForm() {
     const raw = plusCodeInput.trim();
     if (!raw) return;
 
-    // فصل الكود عن اسم المنطقة إن وُجد فاصلة، مثل: "9V92+Q3V, El Oued"
-    const [codePartRaw, ...localityParts] = raw.split(',');
-    const codePart = codePartRaw.trim().toUpperCase();
-    const locality = localityParts.join(',').trim();
+    // فصل الكود عن اسم المنطقة: يقبل فاصلة "9V92+Q3V, El Oued" أو مسافة فقط "9V92+Q3V El Oued"
+    const olcPattern = /^([23456789CFGHJMPQRVWX]{2,8}\+[23456789CFGHJMPQRVWX]{0,3})[\s,]*(.*)$/i;
+    const match = raw.match(olcPattern);
+    let codePart, locality;
+    if (match) {
+      codePart = match[1].toUpperCase();
+      locality = match[2].trim();
+    } else {
+      const [codePartRaw, ...localityParts] = raw.split(',');
+      codePart = codePartRaw.trim().toUpperCase();
+      locality = localityParts.join(',').trim();
+    }
 
     if (!olc.isValid(codePart)) {
       setPlusCodeError('صيغة الكود غير صحيحة. تأكد من كتابته بشكل صحيح.');
@@ -478,7 +486,7 @@ export default function AddPlaceForm() {
             </button>
           </div>
           {plusCodeError && <p className="text-red-400 text-xs">{plusCodeError}</p>}
-          <p className="text-gray-600 text-xs">انسخ الكود من خرائط قوقل (زر المشاركة يعطيك مثل "9V92+Q3V, El Oued") والصقه هنا مباشرة.</p>
+          <p className="text-gray-600 text-xs">انسخ الكود من خرائط قوقل والصقه هنا مباشرة، بفاصلة أو بدونها (مثل "9V92+Q3V, El Oued" أو "9V92+Q3V El Oued").</p>
 
           <div
             ref={mapContainerRef}
