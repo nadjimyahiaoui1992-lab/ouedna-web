@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase/client';
 import AddPlaceForm from '@/components/map/admin/AddPlaceForm';
+import EditPlaceForm from '@/components/map/admin/EditPlaceForm';
 
 /* غيّر هذا المسار إذا كانت صفحة تسجيل الدخول عندك في مكان آخر */
 const LOGIN_PATH = '/login';
@@ -48,6 +49,7 @@ export default function DashboardPage() {
 
   /* ---------- البيانات ---------- */
   const [places, setPlaces] = useState([]);
+  const [selectedPlace, setSelectedPlace] = useState(null); // المعلم المُختار حاليًا للتعديل
   const [admins, setAdmins] = useState([]);
   const [heritageItems, setHeritageItems] = useState([]);
   const [memories, setMemories] = useState([]);
@@ -100,6 +102,17 @@ export default function DashboardPage() {
 
   function goTo(v) {
     setView(v);
+    setSelectedPlace(null);
+    setMobileSidebarOpen(false);
+    setShowAdminForm(false);
+    setShowHeritageForm(false);
+    setHeritageImageFile(null);
+    setHeritageImagePreview('');
+  }
+
+  function openEditPlace(place) {
+    setSelectedPlace(place);
+    setView('edit-place');
     setMobileSidebarOpen(false);
     setShowAdminForm(false);
     setShowHeritageForm(false);
@@ -369,6 +382,26 @@ export default function DashboardPage() {
           {/* 2. إدراج معلم */}
           {view === 'add-place' && <div className="max-w-5xl mx-auto"><AddPlaceForm /></div>}
 
+          {/* 2ب. تعديل معلم */}
+          {view === 'edit-place' && (
+            <div className="max-w-5xl mx-auto">
+              <EditPlaceForm
+                place={selectedPlace}
+                onCancel={() => goTo('places')}
+                onSaved={(updated) => {
+                  setPlaces(prev => prev.map(p => (p.id === updated.id ? { ...p, ...updated } : p)));
+                  showToast('تم حفظ تعديلات المعلم بنجاح');
+                  goTo('places');
+                }}
+                onDeleted={(id) => {
+                  setPlaces(prev => prev.filter(p => p.id !== id));
+                  showToast('تم حذف المعلم بنجاح');
+                  goTo('places');
+                }}
+              />
+            </div>
+          )}
+
           {/* 3. قاعدة بيانات المعالم */}
           {view === 'places' && (
             <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden max-w-7xl mx-auto animate-fade-in">
@@ -379,21 +412,31 @@ export default function DashboardPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-right text-sm">
                   <thead className="bg-white text-[#64748B] border-b-2 border-[#F1F5F9]">
-                    <tr><th className="p-5 font-bold">اسم المعلم</th><th className="p-5 font-bold">التصنيف الرئيسي</th><th className="p-5 font-bold">حالة الظهور</th><th className="p-5 font-bold text-left">إدارة السجل</th></tr>
+                    <tr><th className="p-5 font-bold">الصورة</th><th className="p-5 font-bold">اسم المعلم</th><th className="p-5 font-bold">التصنيف الرئيسي</th><th className="p-5 font-bold">حالة الظهور</th><th className="p-5 font-bold text-left">إدارة السجل</th></tr>
                   </thead>
                   <tbody>
                     {places.length === 0 && !isLoading && (
-                      <tr><td colSpan={4} className="p-10 text-center text-[#94A3B8] font-bold">لا توجد سجلات معالم حتى الآن</td></tr>
+                      <tr><td colSpan={5} className="p-10 text-center text-[#94A3B8] font-bold">لا توجد سجلات معالم حتى الآن</td></tr>
                     )}
                     {places.map(p => (
                       <tr key={p.id} className="border-b border-[#F1F5F9] hover:bg-[#F8FAFC] transition-colors">
+                        <td className="p-5">
+                          {p.image_url ? (
+                            <img src={p.image_url} alt={p.name} className="w-14 h-14 rounded-lg object-cover border border-[#E2E8F0]" />
+                          ) : (
+                            <div className="w-14 h-14 rounded-lg bg-[#F1F5F9] border border-[#E2E8F0] flex items-center justify-center text-[#94A3B8] text-xl">📍</div>
+                          )}
+                        </td>
                         <td className="p-5 font-black text-[#0F172A]">{p.name}</td>
                         <td className="p-5 text-[#475569] font-medium">{p.main_category}</td>
                         <td className="p-5">
                           <button onClick={() => togglePlaceStatus(p)} className={`px-4 py-1.5 rounded-md text-xs font-black transition-all border ${p.status === 'منشور' ? 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0]' : 'bg-[#F1F5F9] text-[#64748B] border-[#E2E8F0]'}`}>{p.status || 'مسودة'}</button>
                         </td>
                         <td className="p-5 text-left">
-                          <button onClick={() => deleteItem('places', p.id, setPlaces)} className="text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-4 py-1.5 rounded-md text-xs font-bold transition-colors">حذف نهائي</button>
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => openEditPlace(p)} className="text-[#B8962E] bg-[#FFFBEB] hover:bg-[#FEF3C7] px-4 py-1.5 rounded-md text-xs font-bold transition-colors">✎ تعديل</button>
+                            <button onClick={() => deleteItem('places', p.id, setPlaces)} className="text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-4 py-1.5 rounded-md text-xs font-bold transition-colors">حذف نهائي</button>
+                          </div>
                         </td>
                       </tr>
                     ))}
