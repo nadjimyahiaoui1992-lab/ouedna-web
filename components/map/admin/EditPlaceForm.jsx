@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { OpenLocationCode } from 'open-location-code';
 import { supabase } from '@/lib/supabase/client'; // عدّل هذا المسار إذا كان ملف supabase عندك في مكان مختلف
 // ملاحظة: خاصية Plus Code تحتاج تثبيت المكتبة أولاً:  npm install open-location-code
@@ -39,8 +38,12 @@ const EMPTY_FORM = {
   status: 'منشور',
 };
 
-export default function EditPlaceForm({ placeId }) {
-  const router = useRouter();
+// place: صف المعلم الكامل كما هو موجود أصلاً في مصفوفة places بلوحة التحكم (props.place)
+// onCancel: تُستدعى عند الرجوع بدون حفظ (تُستخدم لإرجاع goTo('places') في الداشبورد)
+// onSaved: تُستدعى بعد نجاح الحفظ وتُمرَّر لها بيانات المعلم المحدّثة، لتحديث المصفوفة في الداشبورد
+// onDeleted: تُستدعى بعد نجاح الحذف النهائي، وتُمرَّر لها id المعلم المحذوف
+export default function EditPlaceForm({ place, onCancel, onSaved, onDeleted }) {
+  const placeId = place?.id;
 
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
@@ -68,23 +71,16 @@ export default function EditPlaceForm({ placeId }) {
   const [plusCodeError, setPlusCodeError] = useState('');
 
   // ===================================================================
-  // 1. جلب بيانات المعلم الحالية + صور المعرض عند فتح الصفحة
+  // 1. تعبئة الفورم من بيانات المعلم الممرّرة من لوحة التحكم + جلب صور المعرض فقط
   // ===================================================================
   useEffect(() => {
     let cancelled = false;
 
-    async function loadPlace() {
+    async function loadGallery() {
+      if (!place) return;
       setLoading(true);
       setLoadError('');
       try {
-        const { data: place, error: placeError } = await supabase
-          .from('places')
-          .select('*')
-          .eq('id', placeId)
-          .single();
-
-        if (placeError) throw new Error('تعذر العثور على هذا المعلم.');
-
         const { data: gallery, error: galleryError } = await supabase
           .from('gallery')
           .select('*')
@@ -129,8 +125,9 @@ export default function EditPlaceForm({ placeId }) {
       }
     }
 
-    if (placeId) loadPlace();
+    if (placeId) loadGallery();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placeId]);
 
   const handleInputChange = (e) => {
@@ -477,6 +474,9 @@ export default function EditPlaceForm({ placeId }) {
       setNewImages([]);
       setRemovedImageIds([]);
       setPlusCodeInput('');
+
+      // إبلاغ لوحة التحكم بالتحديث لتعكسه فورًا في جدول قاعدة بيانات المعالم
+      onSaved?.({ id: placeId, ...placeDataToUpdate });
     } catch (error) {
       console.error('Error:', error);
       setSubmitError(error.message || 'حدث خطأ غير متوقع أثناء الحفظ.');
@@ -498,7 +498,7 @@ export default function EditPlaceForm({ placeId }) {
       const { error: placeDeleteError } = await supabase.from('places').delete().eq('id', placeId);
       if (placeDeleteError) throw new Error(`فشل حذف المعلم: ${placeDeleteError.message}`);
 
-      router.push('/admin/dashboard');
+      onDeleted?.(placeId);
     } catch (error) {
       console.error('Error:', error);
       setSubmitError(error.message || 'حدث خطأ غير متوقع أثناء الحذف.');
@@ -506,10 +506,18 @@ export default function EditPlaceForm({ placeId }) {
     }
   };
 
+  if (!place) {
+    return (
+      <div className="p-8 text-center text-red-400 bg-[#111] rounded-xl" dir="rtl">
+        لم يتم تحديد أي معلم للتعديل.
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="p-8 text-center text-gray-400 bg-[#111] rounded-xl" dir="rtl">
-        جاري تحميل بيانات المعلم...
+        جاري تحميل صور المعلم...
       </div>
     );
   }
@@ -527,7 +535,16 @@ export default function EditPlaceForm({ placeId }) {
 
       {/* الترويسة والحالة */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#1a1a1a] p-4 rounded-lg border border-[#333]">
-        <h2 className="text-2xl font-bold text-green-500">تعديل المعلم: {formData.name || '—'}</h2>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onCancel?.()}
+            className="text-gray-400 hover:text-white text-sm px-3 py-2 rounded-md border border-gray-700 hover:border-gray-500 transition-colors"
+          >
+            → رجوع
+          </button>
+          <h2 className="text-2xl font-bold text-green-500">تعديل المعلم: {formData.name || '—'}</h2>
+        </div>
         <div className="flex items-center gap-2">
           <label className="text-sm">حالة المعلم:</label>
           <select
