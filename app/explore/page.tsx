@@ -10,21 +10,37 @@ export default async function ExplorePage() {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   // 1) المعالم السياحية — جدول places
-  //    الأعمدة المتوقعة: id, name, category, description, cover_url, gallery (jsonb: string[]), lat, lng
-  const { data: places } = await supabase
+  const { data: placesData } = await supabase
     .from('places')
     .select('*')
     .order('created_at', { ascending: true });
 
-  // 2) ذكريات قديمة — جدول old_memories
-  //    الأعمدة المتوقعة: id, image_url, caption, year
+  // 2) التراث — جدول heritage (الجدول الذي لم يكن موجوداً في الكود القديم)
+  const { data: heritageData } = await supabase
+    .from('heritage')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  // 💡 تحويل بيانات التراث لكي تفهمها واجهة العرض وتدمجها مع المعالم
+  const formattedHeritage = (heritageData || []).map((item) => ({
+    id: `heritage-${item.id}`, // تمييز الـ ID لتجنب تعارض المفاتيح (Keys)
+    name: item.title,          // تحويل حقل العنوان
+    description: item.text,    // تحويل حقل النص
+    cover_url: item.image,     // تحويل الصورة لتعرض كغلاف
+    category: 'تراث'           // إضافة تصنيف ثابت لتظهر في الفلاتر بشكل جميل
+  }));
+
+  // دمج المعالم الأصلية مع المعالم التراثية في قائمة واحدة
+  const allPlaces = [...(placesData || []), ...formattedHeritage];
+
+  // 3) ذكريات قديمة — جدول old_memories
+  // ⚠️ قمنا بتغيير الترتيب إلى created_at بدلاً من year لتجنب خطأ تعطل الخادم
   const { data: oldMemories } = await supabase
     .from('old_memories')
     .select('*')
-    .order('year', { ascending: true });
+    .order('created_at', { ascending: false });
 
-  // 3) تجارب الزوار المعتمدة فقط — جدول testimonials
-  //    الأعمدة المتوقعة: id, name, message, photos (jsonb: string[]), status ('pending' | 'approved'), created_at
+  // 4) تجارب الزوار المعتمدة فقط — جدول testimonials
   const { data: testimonials } = await supabase
     .from('testimonials')
     .select('*')
@@ -34,9 +50,9 @@ export default async function ExplorePage() {
 
   return (
     <ExploreClient
-      places={places ?? []}
+      places={allPlaces}
       oldMemories={oldMemories ?? []}
       testimonials={testimonials ?? []}
     />
   );
-}
+}
