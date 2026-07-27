@@ -716,11 +716,11 @@ function MemoriesGallery({ memories }: { memories: OldMemory[] }) {
   return (
     <section>
       <div className="mb-5">
-        <SectionEyebrow 
+     <SectionEyebrow 
           icon={ImageIcon} 
-          eyebrow={t('memoriesEyebrow') || 'ذكريات'} 
-          title={t('oldMemoriesTitle') || 'عبق الماضي'} 
-          subtitle={t('oldMemoriesSubtitle') || 'صور وذكريات من تاريخ المنطقة'} 
+          eyebrow={t('memoriesEyebrow' as any) || 'ذكريات'} 
+          title={t('oldMemoriesTitle' as any) || 'عبق الماضي'} 
+          subtitle={t('oldMemoriesSubtitle' as any) || 'صور وذكريات من تاريخ المنطقة'} 
         />
       </div>
       {/* استخدمنا نظام الأعمدة (Masonry Layout) ليتوافق مع التصميم الذي صنعته في MemoryTile */}
