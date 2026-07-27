@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
-import MemoriesGallery from '@/components/MemoriesGallery';
 import {
   Compass, MapPin, Sparkles, ImageIcon, Upload,
   Landmark as LandmarkIcon, ChevronLeft, ChevronRight, X,
@@ -708,23 +707,31 @@ function PlaceModal({ place, isFavorite, onToggleFavorite, onClose }: { place: P
     </div>
   );
 }
-function MemoryTile({ memory }: { memory: OldMemory }) {
-  const mImgs = parseImages(memory.image_url);
-  const imgSrc = mImgs[0] || FALLBACK_IMG;
-  const caption = useAutoTranslate(memory.caption);
+function MemoriesGallery({ memories }: { memories: OldMemory[] }) {
+  const { t } = useLanguage();
+  
+  // إذا لم يكن هناك ذكريات، لا تقم بعرض القسم إطلاقاً
+  if (!memories || memories.length === 0) return null;
+
   return (
-    <div className="relative break-inside-avoid rounded-xl overflow-hidden border border-white/5 group">
-      <img src={imgSrc} alt={caption || 'memory'} className="w-full object-cover sepia-[.35] contrast-105 group-hover:sepia-0 transition-all duration-500" onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_IMG; }} />
-      {(memory.caption || memory.year) && (
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2.5">
-          <p className="text-white text-xs font-bold">{caption}</p>
-          {memory.year && <p className="text-amber-300 text-[10px]">{memory.year}</p>}
-        </div>
-      )}
-    </div>
+    <section>
+      <div className="mb-5">
+        <SectionEyebrow 
+          icon={ImageIcon} 
+          eyebrow={t('memoriesEyebrow') || 'ذكريات'} 
+          title={t('oldMemoriesTitle') || 'عبق الماضي'} 
+          subtitle={t('oldMemoriesSubtitle') || 'صور وذكريات من تاريخ المنطقة'} 
+        />
+      </div>
+      {/* استخدمنا نظام الأعمدة (Masonry Layout) ليتوافق مع التصميم الذي صنعته في MemoryTile */}
+      <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 space-y-3">
+        {memories.map((memory) => (
+          <MemoryTile key={memory.id} memory={memory} />
+        ))}
+      </div>
+    </section>
   );
 }
-
 function WilayaIntro() {
   const { t } = useLanguage();
   return (
