@@ -626,10 +626,11 @@ function PlaceModal({ place, isFavorite, onToggleFavorite, onClose }: { place: P
   const [copied, setCopied] = useState(false);
 
   const images = useMemo(() => getPlaceImages(place), [place]);
-  // دعم ذكي لحقول heritage
-  const name = useAutoTranslate(place.name || place.title || '');
-  const description = useAutoTranslate(place.description || place.text || '');
-  const category = useAutoTranslate(place.category || 'تراث');
+  
+  // إلغاء الإجبار والقراءة مباشرة من قاعدة البيانات
+  const name = useAutoTranslate(place.name);
+  const description = useAutoTranslate(place.description);
+  const category = useAutoTranslate(place.category);
 
   const handleShowOnMap = () => router.push(buildInternalMapUrl(place));
   const handleShare = async () => {
@@ -647,14 +648,13 @@ function PlaceModal({ place, isFavorite, onToggleFavorite, onClose }: { place: P
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-3 sm:p-6" onClick={onClose}>
-      {/* تم تقليص الارتفاع ليكون 80vh على الهاتف بدلاً من 92vh ليكون أريح للعين ومتجاوب أكثر */}
       <div className="relative w-full sm:max-w-2xl max-h-[80vh] sm:max-h-[85vh] overflow-y-auto bg-[#171310] rounded-[1.5rem] sm:rounded-[2rem] border border-white/10 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} aria-label={t('close')} className="absolute top-4 end-4 z-30 bg-black/60 hover:bg-black/90 text-white rounded-full p-2 transition shadow-lg">
           <X size={18} />
         </button>
 
         <div className="relative">
-          <SwipeableGallery images={images} activeIdx={activeImg} setActiveIdx={setActiveImg} alt={name} />
+          <SwipeableGallery images={images} activeIdx={activeImg} setActiveIdx={setActiveImg} alt={name || 'Place image'} />
           {images.length > 1 && (
             <>
               <div className="flex overflow-x-auto gap-2 p-3 bg-[#12100c] border-b border-white/5">
@@ -669,12 +669,16 @@ function PlaceModal({ place, isFavorite, onToggleFavorite, onClose }: { place: P
           )}
         </div>
 
-        {/* تم تصغير الحواف الداخلية (Padding) على الهواتف لمساحة عرض أفضل */}
         <div className="p-4 sm:p-7">
           <div className="flex items-start justify-between gap-3 mb-3">
-            <span className="bg-amber-500/20 text-amber-400 text-[11px] font-bold px-2.5 py-1 rounded-full border border-amber-500/20 inline-block">
-              {category}
-            </span>
+            
+            {/* إعادة شرط إظهار زر التصنيف فقط إذا كان موجوداً */}
+            {place.category ? (
+              <span className="bg-amber-500/20 text-amber-400 text-[11px] font-bold px-2.5 py-1 rounded-full border border-amber-500/20 inline-block">
+                {category}
+              </span>
+            ) : <span />}
+
             <div className="flex items-center gap-2 shrink-0">
               <button onClick={onToggleFavorite} aria-label={isFavorite ? t('removeFromFavorites') : t('addToFavorites')} className={`rounded-full p-1.5 sm:p-2 border transition ${isFavorite ? 'bg-amber-500 border-amber-500 text-black' : 'bg-white/5 border-white/10 text-white hover:border-amber-400/50'}`}>
                 <Heart size={15} fill={isFavorite ? 'currentColor' : 'none'} />
@@ -703,27 +707,6 @@ function PlaceModal({ place, isFavorite, onToggleFavorite, onClose }: { place: P
     </div>
   );
 }
-
-function MemoriesGallery({ memories }: { memories: OldMemory[] }) {
-  const { t } = useLanguage();
-  return (
-    <section>
-      <SectionEyebrow icon={Camera} eyebrow={t('archiveEyebrow')} title={t('oldMemories')} subtitle={t('memoriesSubtitle')} />
-      {memories.length === 0 ? (
-        <div className="text-center py-10 bg-white/5 rounded-2xl border border-white/5">
-          <p className="text-stone-400">{t('noMemoriesYet')}</p>
-        </div>
-      ) : (
-        <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 space-y-3">
-          {memories.map((m) => (
-            <MemoryTile key={m.id} memory={m} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 function MemoryTile({ memory }: { memory: OldMemory }) {
   const mImgs = parseImages(memory.image_url);
   const imgSrc = mImgs[0] || FALLBACK_IMG;
