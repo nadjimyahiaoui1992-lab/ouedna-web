@@ -450,10 +450,11 @@ function PlaceCard({ place, isFav, onOpen, onToggleFavorite, onShowOnMap }: { pl
   const { t } = useLanguage();
   const placeImgs = getPlaceImages(place);
   const coverImg = placeImgs[0];
-  // استخدام title و text كبديل ذكي إن لم يتوفر name و description
-  const name = useAutoTranslate(place.name || place.title || '');
-  const description = useAutoTranslate(place.description || place.text || '');
-  const category = useAutoTranslate(place.category || 'تراث');
+  
+  // عدنا للقراءة المباشرة من قاعدة البيانات كما هي في لوحة التحكم
+  const name = useAutoTranslate(place.name);
+  const description = useAutoTranslate(place.description);
+  const category = useAutoTranslate(place.category);
 
   return (
     <div className="group relative rounded-[1.5rem] overflow-hidden border border-white/5 bg-[#15120e] shadow-lg hover:shadow-amber-500/10 hover:-translate-y-1 hover:border-amber-500/20 transition-all duration-300">
@@ -466,9 +467,13 @@ function PlaceCard({ place, isFav, onOpen, onToggleFavorite, onShowOnMap }: { pl
             onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_IMG; }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#15120e] via-[#15120e]/20 to-transparent" />
-          <span className="absolute top-3 end-3 bg-black/40 backdrop-blur text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-400/20">
-            {category}
-          </span>
+          
+          {/* هنا أعدنا شرط إظهار التصنيف فقط إذا كان موجوداً فعلاً في لوحة التحكم */}
+          {place.category && (
+            <span className="absolute top-3 end-3 bg-black/40 backdrop-blur text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-400/20">
+              {category}
+            </span>
+          )}
         </div>
         <div className="p-4 sm:p-5 pb-0">
           <h3 className="text-base sm:text-lg font-bold mb-1 text-white">{name}</h3>
