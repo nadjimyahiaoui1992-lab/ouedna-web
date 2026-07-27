@@ -17,7 +17,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// تم تحديث نوع البيانات ليستقبل حقول جدول heritage تلقائياً
 type Place = {
   id: string | number;
   name?: string;
@@ -52,10 +51,9 @@ const FALLBACK_IMG =
   'https://images.unsplash.com/photo-1542601098-8fc114e148e2?q=80&w=800&auto=format&fit=crop';
 
 const FAVORITES_KEY = 'souf360_favorites';
-
 const TESTIMONIALS_BUCKET = 'testimonials-photos';
 
-// ============================= دالة تحليل الصور الخارقة =============================
+// ============================= دالة تحليل الصور =============================
 function parseImages(input: any): string[] {
   if (!input) return [];
 
@@ -83,7 +81,7 @@ function parseImages(input: any): string[] {
         const parsed = JSON.parse(trimmed);
         return parseImages(parsed);
       } catch {
-        // تجاهل الخطأ والمتابعة
+        // تجاهل الخطأ
       }
     }
 
@@ -111,21 +109,10 @@ function getPlaceImages(place: Place): string[] {
     return `${supabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/${cleanImgPath}`;
   };
 
-  if (place.image_url) {
-    parseImages(place.image_url).forEach((img) => imagesSet.add(formatUrl(img)));
-  }
-  // جلب الصور من جدول heritage تلقائياً
-  if (place.image) {
-    parseImages(place.image).forEach((img) => imagesSet.add(formatUrl(img)));
-  }
-
-  if (place.cover_url) {
-    parseImages(place.cover_url).forEach((img) => imagesSet.add(formatUrl(img)));
-  }
-
-  if (place.gallery) {
-    parseImages(place.gallery).forEach((img) => imagesSet.add(formatUrl(img)));
-  }
+  if (place.image_url) parseImages(place.image_url).forEach((img) => imagesSet.add(formatUrl(img)));
+  if (place.image) parseImages(place.image).forEach((img) => imagesSet.add(formatUrl(img)));
+  if (place.cover_url) parseImages(place.cover_url).forEach((img) => imagesSet.add(formatUrl(img)));
+  if (place.gallery) parseImages(place.gallery).forEach((img) => imagesSet.add(formatUrl(img)));
 
   const list = Array.from(imagesSet);
   return list.length > 0 ? list : [FALLBACK_IMG];
@@ -168,18 +155,6 @@ function DomeSkyline({ fill = '#0a0908', className = '' }: { fill?: string; clas
   );
 }
 
-function ThousandDomesFrieze({ opacity = 0.09, fill = '#f59e0b' }: { opacity?: number; fill?: string }) {
-  const domes = Array.from({ length: 30 }, (_, i) => i);
-  return (
-    <svg className="absolute inset-x-0 bottom-[30%] w-[110%] -left-[5%]" viewBox="0 0 1500 60" preserveAspectRatio="none" fill="none" style={{ opacity }}>
-      {domes.map((i) => {
-        const cx = i * 52 + 20;
-        return <path key={i} d={`M${cx - 20} 60 L${cx - 20} 34 A20 20 0 0 1 ${cx + 20} 34 L${cx + 20} 60 Z`} fill={fill} />;
-      })}
-    </svg>
-  );
-}
-
 function DuneDivider() {
   return (
     <div className="relative z-10 w-full overflow-hidden h-6 opacity-40">
@@ -194,56 +169,22 @@ function DuneDivider() {
   );
 }
 
+/* ============================= الخلفية الجديدة (واحة في غروب الشمس) ============================= */
 function GhoutBackdrop() {
   return (
     <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      {/* الصورة الاحترافية للواحة الصحراوية */}
       <div
-        className="absolute inset-x-0 top-0 h-[65vh] opacity-[0.20]"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 scale-105"
         style={{
-          background: 'linear-gradient(180deg, #7c2d12 0%, #c2410c 22%, #f59e0b 46%, #fbbf24 62%, transparent 100%)',
+          // يمكنك تغيير هذا الرابط بصورة مخصصة من تصويرك لولاية الوادي متى شئت
+          backgroundImage: `url('https://images.unsplash.com/photo-1548508492-4e551980894f?q=80&w=2000&auto=format&fit=crop')`,
+          backgroundAttachment: 'fixed',
         }}
       />
-      <div
-        className="absolute left-1/2 top-[22%] -translate-x-1/2 -translate-y-1/2 w-[38vmin] h-[38vmin] rounded-full opacity-[0.16]"
-        style={{ background: 'radial-gradient(circle, #fde68a 0%, #f59e0b 55%, transparent 75%)' }}
-      />
-      <div
-        className="sun-rays absolute left-1/2 top-[-10%] -translate-x-1/2 w-[160vmax] h-[160vmax] opacity-[0.04]"
-        style={{
-          background: 'repeating-conic-gradient(from 0deg, #fcd34d 0deg 4deg, transparent 4deg 16deg)',
-        }}
-      />
-      <ThousandDomesFrieze opacity={0.07} fill="#fbbf24" />
-      <div className="absolute inset-x-0 bottom-[26%] w-[115%] -left-[7%] opacity-[0.10]">
-        <ThousandDomesFrieze opacity={1} fill="#d97706" />
-      </div>
-      <svg className="absolute inset-x-0 bottom-[38%] w-[120%] -left-[10%] opacity-[0.09]" viewBox="0 0 1400 220" preserveAspectRatio="none" fill="none">
-        <path d="M0 220 L0 140 Q150 90 300 140 T 600 140 T 900 140 T 1200 140 T 1400 140 L1400 220 Z" fill="#f59e0b" />
-      </svg>
-      <svg className="absolute inset-x-0 bottom-[18%] w-[130%] -left-[15%] opacity-[0.11]" viewBox="0 0 1400 220" preserveAspectRatio="none" fill="none">
-        <path d="M0 220 L0 160 Q200 100 400 160 T 800 160 T 1200 160 T 1400 160 L1400 220 Z" fill="#d97706" />
-      </svg>
-      <svg className="absolute inset-x-0 bottom-0 w-[120%] -left-[10%] opacity-[0.16]" viewBox="0 0 1400 260" preserveAspectRatio="none" fill="none">
-        <path d="M0 260 L0 190 Q180 120 380 185 T 760 185 T 1140 185 T 1400 185 L1400 260 Z" fill="#92400e" />
-      </svg>
-      {[
-        { x: '8%', y: '58%', s: 0.8 }, { x: '18%', y: '70%', s: 1.1 }, { x: '30%', y: '62%', s: 0.7 },
-        { x: '46%', y: '74%', s: 1 }, { x: '60%', y: '60%', s: 0.9 }, { x: '74%', y: '72%', s: 0.75 },
-        { x: '88%', y: '63%', s: 1.05 }, { x: '96%', y: '75%', s: 0.7 },
-      ].map((p, i) => (
-        <svg key={i} className="absolute opacity-[0.13]" style={{ left: p.x, top: p.y, width: `${60 * p.s}px`, height: `${90 * p.s}px` }} viewBox="0 0 60 90" fill="none">
-          <path d="M30 90 L30 40" stroke="#78350f" strokeWidth="3" />
-          <g fill="#78350f">
-            <path d="M30 40 Q10 30 4 12 Q22 18 30 40Z" />
-            <path d="M30 40 Q50 30 56 12 Q38 18 30 40Z" />
-            <path d="M30 40 Q16 24 14 4 Q28 14 30 40Z" />
-            <path d="M30 40 Q44 24 46 4 Q32 14 30 40Z" />
-            <path d="M30 40 Q30 18 30 2 Q34 20 30 40Z" />
-          </g>
-        </svg>
-      ))}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0908] via-transparent to-[#0a0908]" />
-      <div className="absolute inset-0 bg-[#0a0908]/72" />
+      {/* طبقات التدرج الداكنة لضمان وضوح نصوص التطبيق بشكل مثالي */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0908]/95 via-[#0a0908]/80 to-[#0a0908]" />
+      <div className="absolute inset-0 bg-[#0a0908]/60 backdrop-blur-[2px]" />
     </div>
   );
 }
@@ -321,14 +262,12 @@ function ExploreClientInner({ places, oldMemories, testimonials }: { places: Pla
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap');
         @keyframes riseIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes driftSlow { from { transform: translateX(0); } to { transform: translateX(-4%); } }
-        @keyframes spinSlow { from { transform: translate(-50%,0) rotate(0deg); } to { transform: translate(-50%,0) rotate(360deg); } }
         .rise-1 { animation: riseIn 0.9s cubic-bezier(0.16,1,0.3,1) 0.05s both; }
         .rise-2 { animation: riseIn 0.9s cubic-bezier(0.16,1,0.3,1) 0.2s both; }
         .rise-3 { animation: riseIn 0.9s cubic-bezier(0.16,1,0.3,1) 0.35s both; }
         .dune-drift { animation: driftSlow 40s linear infinite alternate; }
-        .sun-rays { animation: spinSlow 160s linear infinite; }
         @media (prefers-reduced-motion: reduce) {
-          .rise-1, .rise-2, .rise-3, .dune-drift, .sun-rays { animation: none !important; }
+          .rise-1, .rise-2, .rise-3, .dune-drift { animation: none !important; }
         }
       `}</style>
 
@@ -409,10 +348,10 @@ function Hero({ places, oldMemories, testimonials }: { places: Place[]; oldMemor
   return (
     <header className="relative w-full overflow-hidden">
       <div className="relative h-[46vh] sm:h-[56vh] min-h-[360px] max-h-[560px] w-full">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1600&auto=format&fit=crop')` }} />
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?q=80&w=2000&auto=format&fit=crop')` }} />
         <div className="absolute inset-0 bg-gradient-to-b from-orange-950/60 via-black/30 to-[#0a0908]" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0908] via-transparent to-transparent" />
-        <div className="absolute inset-0 bg-amber-900/10 mix-blend-overlay" />
+        <div className="absolute inset-0 bg-amber-900/20 mix-blend-overlay" />
         <DomeSkyline fill="#0a0908" className="absolute inset-x-0 bottom-0 w-full h-20 sm:h-28 opacity-90 pointer-events-none" />
 
         <div className="relative z-10 h-full max-w-5xl mx-auto px-4 sm:px-6 flex flex-col justify-end pb-14 sm:pb-20">
@@ -451,7 +390,6 @@ function PlaceCard({ place, isFav, onOpen, onToggleFavorite, onShowOnMap }: { pl
   const placeImgs = getPlaceImages(place);
   const coverImg = placeImgs[0];
   
-  // عدنا للقراءة المباشرة من قاعدة البيانات كما هي في لوحة التحكم
   const name = useAutoTranslate(place.name);
   const description = useAutoTranslate(place.description);
   const category = useAutoTranslate(place.category);
@@ -468,7 +406,6 @@ function PlaceCard({ place, isFav, onOpen, onToggleFavorite, onShowOnMap }: { pl
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#15120e] via-[#15120e]/20 to-transparent" />
           
-          {/* هنا أعدنا شرط إظهار التصنيف فقط إذا كان موجوداً فعلاً في لوحة التحكم */}
           {place.category && (
             <span className="absolute top-3 end-3 bg-black/40 backdrop-blur text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-400/20">
               {category}
@@ -627,7 +564,6 @@ function PlaceModal({ place, isFavorite, onToggleFavorite, onClose }: { place: P
 
   const images = useMemo(() => getPlaceImages(place), [place]);
   
-  // إلغاء الإجبار والقراءة مباشرة من قاعدة البيانات
   const name = useAutoTranslate(place.name);
   const description = useAutoTranslate(place.description);
   const category = useAutoTranslate(place.category);
@@ -672,7 +608,6 @@ function PlaceModal({ place, isFavorite, onToggleFavorite, onClose }: { place: P
         <div className="p-4 sm:p-7">
           <div className="flex items-start justify-between gap-3 mb-3">
             
-            {/* إعادة شرط إظهار زر التصنيف فقط إذا كان موجوداً */}
             {place.category ? (
               <span className="bg-amber-500/20 text-amber-400 text-[11px] font-bold px-2.5 py-1 rounded-full border border-amber-500/20 inline-block">
                 {category}
@@ -707,23 +642,23 @@ function PlaceModal({ place, isFavorite, onToggleFavorite, onClose }: { place: P
     </div>
   );
 }
+
+/* ============================= دمج مكونات الذكريات ============================= */
 function MemoriesGallery({ memories }: { memories: OldMemory[] }) {
   const { t } = useLanguage();
   
-  // إذا لم يكن هناك ذكريات، لا تقم بعرض القسم إطلاقاً
   if (!memories || memories.length === 0) return null;
 
   return (
     <section>
       <div className="mb-5">
-     <SectionEyebrow 
+        <SectionEyebrow 
           icon={ImageIcon} 
           eyebrow={t('memoriesEyebrow' as any) || 'ذكريات'} 
           title={t('oldMemoriesTitle' as any) || 'عبق الماضي'} 
           subtitle={t('oldMemoriesSubtitle' as any) || 'صور وذكريات من تاريخ المنطقة'} 
         />
       </div>
-      {/* استخدمنا نظام الأعمدة (Masonry Layout) ليتوافق مع التصميم الذي صنعته في MemoryTile */}
       <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 space-y-3">
         {memories.map((memory) => (
           <MemoryTile key={memory.id} memory={memory} />
@@ -732,6 +667,30 @@ function MemoriesGallery({ memories }: { memories: OldMemory[] }) {
     </section>
   );
 }
+
+function MemoryTile({ memory }: { memory: OldMemory }) {
+  const mImgs = parseImages(memory.image_url);
+  const imgSrc = mImgs[0] || FALLBACK_IMG;
+  const caption = useAutoTranslate(memory.caption);
+  
+  return (
+    <div className="relative break-inside-avoid rounded-xl overflow-hidden border border-white/5 group">
+      <img 
+        src={imgSrc} 
+        alt={caption || 'memory'} 
+        className="w-full object-cover sepia-[.35] contrast-105 group-hover:sepia-0 transition-all duration-500" 
+        onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_IMG; }} 
+      />
+      {(memory.caption || memory.year) && (
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2.5">
+          <p className="text-white text-xs font-bold">{caption}</p>
+          {memory.year && <p className="text-amber-300 text-[10px]">{memory.year}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WilayaIntro() {
   const { t } = useLanguage();
   return (
