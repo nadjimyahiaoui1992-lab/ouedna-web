@@ -9,38 +9,36 @@ export default async function ExplorePage() {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // 1) المعالم السياحية — جدول places
+  // 1) المعالم السياحية فقط (بدون التراث)
   const { data: placesData } = await supabase
     .from('places')
     .select('*')
     .order('created_at', { ascending: true });
 
-  // 2) التراث — جدول heritage (الجدول الذي لم يكن موجوداً في الكود القديم)
+  // 2) جلب بيانات التراث (التي أضفتها أنت)
   const { data: heritageData } = await supabase
     .from('heritage')
     .select('*')
     .order('created_at', { ascending: false });
 
-  // 💡 تحويل بيانات التراث لكي تفهمها واجهة العرض وتدمجها مع المعالم
-  const formattedHeritage = (heritageData || []).map((item) => ({
-    id: `heritage-${item.id}`, // تمييز الـ ID لتجنب تعارض المفاتيح (Keys)
-    name: item.title,          // تحويل حقل العنوان
-    description: item.text,    // تحويل حقل النص
-    cover_url: item.image,     // تحويل الصورة لتعرض كغلاف
-    category: 'تراث'           // إضافة تصنيف ثابت لتظهر في الفلاتر بشكل جميل
-  }));
-
-  // دمج المعالم الأصلية مع المعالم التراثية في قائمة واحدة
-  const allPlaces = [...(placesData || []), ...formattedHeritage];
-
-  // 3) ذكريات قديمة — جدول old_memories
-  // ⚠️ قمنا بتغيير الترتيب إلى created_at بدلاً من year لتجنب خطأ تعطل الخادم
-  const { data: oldMemories } = await supabase
+  // 3) جلب بيانات الذكريات القديمة
+  const { data: oldMemoriesData } = await supabase
     .from('old_memories')
     .select('*')
     .order('created_at', { ascending: false });
 
-  // 4) تجارب الزوار المعتمدة فقط — جدول testimonials
+  // 💡 تحويل بيانات التراث لتتطابق مع شكل "الذكريات القديمة"
+  const formattedHeritageAsMemories = (heritageData || []).map((item) => ({
+    id: `heritage-${item.id}`, // تمييز الـ ID لتجنب أي تعارض
+    image_url: item.image,     // توجيه الصورة لمكانها الصحيح في المعرض
+    // دمج العنوان مع النص ليعرض كوصف للصورة في الذكريات
+    caption: item.title ? `${item.title} - ${item.text}` : item.text, 
+  }));
+
+  // 💡 دمج جدول الذكريات مع جدول التراث ليظهروا معاً في ركن الذكريات القديمة
+  const allMemories = [...(oldMemoriesData || []), ...formattedHeritageAsMemories];
+
+  // 4) تجارب الزوار المعتمدة فقط
   const { data: testimonials } = await supabase
     .from('testimonials')
     .select('*')
@@ -50,8 +48,8 @@ export default async function ExplorePage() {
 
   return (
     <ExploreClient
-      places={allPlaces}
-      oldMemories={oldMemories ?? []}
+      places={placesData ?? []}        // نرسل المعالم النقية فقط
+      oldMemories={allMemories}        // نرسل الذكريات + التراث هنا
       testimonials={testimonials ?? []}
     />
   );
