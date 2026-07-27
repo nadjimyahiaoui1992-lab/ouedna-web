@@ -8,7 +8,7 @@ import {
   Compass, MapPin, Sparkles, ImageIcon, Upload,
   Landmark as LandmarkIcon, ChevronLeft, ChevronRight, X,
   MessageSquareHeart, Camera, Quote, Sun, Award, Clock3,
-  Search, Tag, Heart, Share2, Check, Info, Navigation2,
+  Search, Tag, Heart, Share2, Check, Info, Navigation2, Maximize2, Minimize2
 } from 'lucide-react';
 import { LanguageProvider, useLanguage, useAutoTranslate, DictKey } from '@/lib/i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -101,7 +101,10 @@ function parseImages(input: any): string[] {
 
 function getPlaceImages(place: Place): string[] {
   const imagesSet = new Set<string>();
-  const BUCKET_NAME = 'IMAGES';
+  
+  // ⚠️ هام: تأكد أن هذا الاسم يطابق اسم سلة التخزين الخاصة بالمعالم في Supabase
+  // إذا كانت الصور ترفع في سلة اسمها 'images' أو 'souf360'، قم بتغيير الكلمة هنا
+  const BUCKET_NAME = 'places'; 
 
   const formatUrl = (img: string) => {
     if (img.startsWith('http')) return img;
@@ -173,16 +176,13 @@ function DuneDivider() {
 function GhoutBackdrop() {
   return (
     <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
-      {/* الصورة الاحترافية للواحة الصحراوية */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 scale-105"
         style={{
-          // يمكنك تغيير هذا الرابط بصورة مخصصة من تصويرك لولاية الوادي متى شئت
           backgroundImage: `url('https://images.unsplash.com/photo-1548508492-4e551980894f?q=80&w=2000&auto=format&fit=crop')`,
           backgroundAttachment: 'fixed',
         }}
       />
-      {/* طبقات التدرج الداكنة لضمان وضوح نصوص التطبيق بشكل مثالي */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0a0908]/95 via-[#0a0908]/80 to-[#0a0908]" />
       <div className="absolute inset-0 bg-[#0a0908]/60 backdrop-blur-[2px]" />
     </div>
@@ -500,14 +500,16 @@ function CategoryButton({ cat, active, onClick }: { cat: string; active: boolean
   );
 }
 
+// ============================= إضافة التكبير (Fullscreen Lightbox) لمعرض الصور =============================
 function SwipeableGallery({ images, activeIdx, setActiveIdx, alt }: { images: string[]; activeIdx: number; setActiveIdx: (i: number) => void; alt: string; }) {
   const { t } = useLanguage();
   const startX = useRef<number | null>(null);
   const deltaX = useRef(0);
   const [dragging, setDragging] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const nextImg = () => setActiveIdx((activeIdx + 1) % images.length);
-  const prevImg = () => setActiveIdx((activeIdx - 1 + images.length) % images.length);
+  const nextImg = (e?: React.MouseEvent) => { e?.stopPropagation(); setActiveIdx((activeIdx + 1) % images.length); };
+  const prevImg = (e?: React.MouseEvent) => { e?.stopPropagation(); setActiveIdx((activeIdx - 1 + images.length) % images.length); };
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (images.length <= 1) return;
@@ -531,28 +533,82 @@ function SwipeableGallery({ images, activeIdx, setActiveIdx, alt }: { images: st
   };
 
   return (
-    <div
-      className="relative h-48 sm:h-72 bg-black/40 touch-pan-y select-none cursor-grab active:cursor-grabbing"
-      onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}
-    >
-      <img src={images[activeIdx]} alt={`${alt} - ${activeIdx + 1}`} draggable={false} className={`w-full h-full object-cover transition-opacity ${dragging ? 'opacity-90' : ''}`} onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_IMG; }} />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#171310] via-transparent to-black/20 pointer-events-none" />
-      {images.length > 1 && (
-        <>
-          <button onClick={prevImg} aria-label={t('previousImage')} className="absolute top-1/2 -translate-y-1/2 start-3 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition">
-            <ChevronRight size={18} className="rtl:inline ltr:hidden" />
-            <ChevronLeft size={18} className="rtl:hidden ltr:inline" />
+    <>
+      <div
+        className="relative h-48 sm:h-72 bg-black/40 touch-pan-y select-none group"
+        onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}
+      >
+        <img 
+          src={images[activeIdx]} 
+          alt={`${alt} - ${activeIdx + 1}`} 
+          draggable={false} 
+          className={`w-full h-full object-cover transition-opacity cursor-pointer ${dragging ? 'opacity-90' : 'group-hover:opacity-95'}`} 
+          onClick={() => setIsFullscreen(true)}
+          onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_IMG; }} 
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#171310] via-transparent to-black/20 pointer-events-none" />
+        
+        {/* زر التكبير بملء الشاشة */}
+        <button 
+          onClick={(e) => { e.stopPropagation(); setIsFullscreen(true); }}
+          className="absolute top-3 start-3 bg-black/40 hover:bg-black/70 text-white rounded-full p-2 transition opacity-0 group-hover:opacity-100 shadow-md"
+          title="عرض الصورة بملء الشاشة"
+        >
+          <Maximize2 size={16} />
+        </button>
+
+        {images.length > 1 && (
+          <>
+            <button onClick={prevImg} aria-label={t('previousImage')} className="absolute top-1/2 -translate-y-1/2 start-3 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition">
+              <ChevronRight size={18} className="rtl:inline ltr:hidden" />
+              <ChevronLeft size={18} className="rtl:hidden ltr:inline" />
+            </button>
+            <button onClick={nextImg} aria-label={t('nextImage')} className="absolute top-1/2 -translate-y-1/2 end-3 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition">
+              <ChevronLeft size={18} className="rtl:inline ltr:hidden" />
+              <ChevronRight size={18} className="rtl:hidden ltr:inline" />
+            </button>
+            <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-amber-300 text-[11px] font-bold px-2.5 py-1 rounded-full">
+              {activeIdx + 1} / {images.length}
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* نافذة العرض بملء الشاشة (Lightbox) */}
+      {isFullscreen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl" onClick={() => setIsFullscreen(false)}>
+          <button className="absolute top-4 end-4 sm:top-6 sm:end-6 text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition z-50">
+            <Minimize2 size={20} />
           </button>
-          <button onClick={nextImg} aria-label={t('nextImage')} className="absolute top-1/2 -translate-y-1/2 end-3 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition">
-            <ChevronLeft size={18} className="rtl:inline ltr:hidden" />
-            <ChevronRight size={18} className="rtl:hidden ltr:inline" />
-          </button>
-          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-amber-300 text-[11px] font-bold px-2.5 py-1 rounded-full">
-            {activeIdx + 1} / {images.length}
-          </span>
-        </>
+          <img 
+            src={images[activeIdx]} 
+            className="max-w-full max-h-[85vh] object-contain p-2 sm:p-6 drop-shadow-2xl" 
+            alt="Fullscreen" 
+            onClick={(e) => e.stopPropagation()} 
+          />
+          {images.length > 1 && (
+            <>
+              <button onClick={prevImg} className="absolute top-1/2 -translate-y-1/2 start-4 sm:start-8 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition shadow-lg">
+                <ChevronRight size={24} className="rtl:inline ltr:hidden" />
+                <ChevronLeft size={24} className="rtl:hidden ltr:inline" />
+              </button>
+              <button onClick={nextImg} className="absolute top-1/2 -translate-y-1/2 end-4 sm:end-8 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition shadow-lg">
+                <ChevronLeft size={24} className="rtl:inline ltr:hidden" />
+                <ChevronRight size={24} className="rtl:hidden ltr:inline" />
+              </button>
+              {/* مصغرات للصور أسفل الشاشة */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 overflow-x-auto max-w-[80vw] p-2 hide-scrollbar">
+                {images.map((imgUrl, idx) => (
+                  <button key={idx} onClick={(e) => { e.stopPropagation(); setActiveIdx(idx); }} className={`shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition ${idx === activeIdx ? 'border-amber-500 scale-110' : 'border-transparent opacity-50 hover:opacity-100'}`}>
+                    <img src={imgUrl} className="w-full h-full object-cover" alt="" />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -643,7 +699,7 @@ function PlaceModal({ place, isFavorite, onToggleFavorite, onClose }: { place: P
   );
 }
 
-/* ============================= دمج مكونات الذكريات ============================= */
+/* ============================= مكونات الذكريات ============================= */
 function MemoriesGallery({ memories }: { memories: OldMemory[] }) {
   const { t } = useLanguage();
   
