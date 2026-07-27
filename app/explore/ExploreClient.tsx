@@ -48,7 +48,7 @@ type Testimonial = {
 };
 
 const FALLBACK_IMG =
-  'https://images.unsplash.com/photo-1542601098-8fc114e148e2?q=80&w=800&auto=format&fit=crop';
+  'https://images.unsplash.com/photo-1548508492-4e551980894f?q=80&w=2000&auto=format&fit=crop';
 
 const FAVORITES_KEY = 'souf360_favorites';
 const TESTIMONIALS_BUCKET = 'testimonials-photos';
