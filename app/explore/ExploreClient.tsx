@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
-import MemoriesGallery from './MemoriesGallery';
+import MemoriesGallery from '@/components/MemoriesGallery';
 import {
   Compass, MapPin, Sparkles, ImageIcon, Upload,
   Landmark as LandmarkIcon, ChevronLeft, ChevronRight, X,
