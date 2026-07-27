@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { MapPin, Map, Compass, Award, Clock3, Sparkles, ChevronDown } from 'lucide-react';
 
 export default function LandingPage() {
@@ -25,12 +26,16 @@ export default function LandingPage() {
       `}</style>
 
       {/* خلفية الصحراء: كثبان ذهبية وواحة نخيل، تعكس طبيعة واد سوف الفلاحية وسط الرمال */}
-      <div
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1770557386874-739c55a381f3?q=80&w=1920&auto=format&fit=crop')`,
-        }}
-      >
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="https://images.unsplash.com/photo-1770557386874-739c55a381f3?q=80&w=1920&auto=format&fit=crop"
+          alt=""
+          fill
+          priority
+          fetchPriority="high"
+          sizes="100vw"
+          className="object-cover"
+        />
         {/* تدرج من سماء ليلية نيلية أعلى الصورة إلى عتمة سفلية، يحاكي غروب الوادي */}
         <div className="absolute inset-0 bg-gradient-to-b from-indigo-950/70 via-black/20 to-black/85" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent" />
