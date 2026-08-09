@@ -8,7 +8,7 @@ const cairo = Cairo({
 });
 
 export const metadata = {
-  title: 'لوحة تحكم سوف 360',
+  title: 'لوحة التحكم منصة اكتشف سوف',
 };
 
 export default function AdminLayout({ children }) {
