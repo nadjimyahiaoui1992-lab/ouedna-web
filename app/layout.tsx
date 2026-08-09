@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 // معلومات الموقع الرسمية المباشرة لتجنب أي أخطاء في مسارات خارجية
 const siteName = "اكتشف سوف | Souf Explorer";
-const siteTitle = "منصة اكتشف سوف الرسمية - عاصمة الألف قبة وقبة";
+const siteTitle = " اكتشف سوف - عاصمة الألف قبة وقبة";
 const siteDescription = "منصة سياحية ذكية لاستكشاف التراث، الصحراء، والقباب المعمارية في ولاية الوادي عبر خريطة تفاعلية متكاملة.";
 const siteUrl = "https://souf360.vercel.app";
 const panoramicOgImage = "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1200&auto=format&fit=crop";
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: siteTitle,
   description: siteDescription,
-  keywords: ["السياحة في الوادي", "سوف 360", "ولاية الوادي", "مدينة الألف قبة", "الخريطة السياحية", "الصحراء الجزائرية"],
+  keywords: ["السياحة في الوادي", " اكتشف سوف ", "ولاية الوادي", "مدينة الألف قبة", "الخريطة السياحية", "الصحراء الجزائرية"],
   applicationName: "اكتشف سوف",
   alternates: {
     canonical: "/",
