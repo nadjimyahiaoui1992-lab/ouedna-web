@@ -54,7 +54,7 @@ export default function LoginPage() {
             تسجيل الدخول
           </h1>
           <p className="text-gray-700 text-sm font-medium">
-            لوحة تحكم منصة Souf 360 السياحية
+            لوحة تحكم منصة اكتشف سوف السياحية
           </p>
         </div>
 
