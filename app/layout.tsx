@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 // معلومات الموقع الرسمية المباشرة لتجنب أي أخطاء في مسارات خارجية
-const siteName = "اكتشف سوف | Souf Explorer";
-const siteTitle = " اكتشف سوف - عاصمة الألف قبة وقبة";
-const siteDescription = "منصة سياحية ذكية لاستكشاف التراث، الصحراء، والقباب المعمارية في ولاية الوادي عبر خريطة تفاعلية متكاملة.";
+const siteName = "ALGERIA 360 AI | Souf360";
+const siteTitle = "ALGERIA 360 AI - المنصة السياحية الوطنية الذكية (مشاركة IA Tour Algérie 2026)";
+const siteDescription = "المنصة السياحية الوطنية الذكية المدعومة بالذكاء الاصطناعي والجولات الغامرة. مع وادي سوف (Souf360) كوجهة رائدة أولى لاستكشاف التراث والصحراء.";
 const siteUrl = "https://souf360.vercel.app";
 const panoramicOgImage = "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1200&auto=format&fit=crop";
 
@@ -26,8 +26,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: siteTitle,
   description: siteDescription,
-  keywords: ["السياحة في الوادي", " اكتشف سوف ", "ولاية الوادي", "مدينة الألف قبة", "الخريطة السياحية", "الصحراء الجزائرية"],
-  applicationName: "اكتشف سوف",
+  keywords: ["ALGERIA 360 AI", "IA Tour Algérie 2026", "Souf360", "السياحة الذكية في الجزائر", "وادي سوف", "اكتشف الجزائر"],
+  applicationName: "ALGERIA 360 AI",
   alternates: {
     canonical: "/",
   },

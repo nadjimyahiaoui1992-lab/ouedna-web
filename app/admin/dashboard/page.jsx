@@ -353,12 +353,16 @@ export default function DashboardPage() {
           {/* 1. المركز الإحصائي */}
           {view === 'overview' && (
             <div className="space-y-8 max-w-7xl mx-auto animate-fade-in">
-              <div className="bg-white p-8 rounded-2xl border border-[#E2E8F0] shadow-sm flex justify-between items-center">
+              <div className="bg-gradient-to-r from-[#193F38] to-[#102D28] p-8 rounded-2xl border border-[#D4AF37]/30 shadow-md text-white flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div>
-                  <h1 className="text-2xl font-black text-[#0F172A]">المركز الإحصائي العام</h1>
-                  <p className="text-[#64748B] text-sm mt-2 font-medium">ملخص فوري لبيانات منصة "سوف 360" الذكية.</p>
+                  <span className="bg-[#D4AF37] text-black font-black text-xs px-3 py-1 rounded-full">IA Tour Algérie 2026 • Axe 03: Performance</span>
+                  <h1 className="text-2xl font-black mt-3">المركز الإحصائي والتحليلات الوطنية (ALGERIA 360 AI)</h1>
+                  <p className="text-[#E2E8F0] text-sm mt-1 font-medium">متابعة فورية لمعالم منصة Souf360 الوطنية، مؤشرات الأداء، وحالة النظام المربوط بـ Supabase.</p>
                 </div>
-                <div className="hidden sm:block text-5xl">📊</div>
+                <div className="bg-black/30 px-5 py-3 rounded-xl border border-white/10 text-center">
+                  <span className="block text-xs text-[#D4AF37] font-bold">الحالة الميدانية</span>
+                  <span className="text-sm font-extrabold text-emerald-400">نشط ومرتبط (RAG AI)</span>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
