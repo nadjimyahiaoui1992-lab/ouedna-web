@@ -55,25 +55,25 @@ export default function LandingPage() {
 
       {/* شارة علوية صغيرة */}
       <div className="relative z-10 pt-7 flex justify-center rise-1">
-        <div className="inline-flex items-center gap-2 bg-amber-500/15 border border-amber-400/40 px-4 py-1.5 rounded-full text-amber-300 text-[11px] font-bold tracking-wide backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 bg-amber-500/15 border border-amber-400/40 px-4 py-1.5 rounded-full text-amber-300 text-[11px] font-bold tracking-wide backdrop-blur-md">
           <Sparkles size={13} className="text-amber-400" />
-          <span>المنصة السياحية الرسمية لوادي سوف</span>
+          <span>ALGERIA 360 AI • مشاركة رسمية في IA Tour Algérie 2026</span>
         </div>
       </div>
 
       {/* المحتوى الرئيسي */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center max-w-4xl w-full mx-auto text-center px-5 space-y-7 py-10">
         <div className="space-y-5">
-          <h1 className="rise-2 text-6xl md:text-8xl font-black tracking-tight text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)]">
-            اكتشف <span className="text-amber-500">سوف</span>
+          <h1 className="rise-2 text-5xl md:text-7xl font-black tracking-tight text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)]">
+            ALGERIA <span className="text-amber-500">360 AI</span>
           </h1>
 
-          <p className="rise-3 text-xl md:text-3xl font-bold text-gray-100 drop-shadow max-w-2xl mx-auto leading-snug">
-            اكتشف سحر الوادي… حيث تبدأ الحكاية وتنتهي الذكريات
+          <p className="rise-3 text-lg md:text-2xl font-bold text-gray-100 drop-shadow max-w-2xl mx-auto leading-snug">
+            Discover Algeria. Intelligently. (مع ريادة وادي سوف • Souf360)
           </p>
 
           <p className="rise-3 text-sm md:text-base text-gray-300 max-w-lg mx-auto leading-relaxed font-medium">
-            كثبان ذهبية، وغيطان ونخيل، وواحات وأراضٍ فلاحية تخضرّ وسط الصحراء، وقِباب بيضاء تروي حكاية مدينة الألف قبة وقبة
+            المنصة السياحية الوطنية الذكية المدعومة بالذكاء الاصطناعي، الخرائط التفاعلية، الواقع المعزز، وتجارب الزوار الموثقة.
           </p>
         </div>
 
@@ -108,25 +108,43 @@ export default function LandingPage() {
         </svg>
       </div>
 
-      {/* شريط الإحصائيات */}
-      <div className="rise-5 relative z-10 w-full max-w-4xl mx-auto px-5 pb-9">
+      {/* شريط الإحصائيات ومحاور المسابقة */}
+      <div className="rise-5 relative z-10 w-full max-w-5xl mx-auto px-5 pb-9 space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-x-reverse divide-white/10 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
           {[
-            { icon: Compass, label: 'معالم سياحية', value: '360+' },
-            { icon: MapPin, label: 'تجارب متنوعة', value: '50+' },
-            { icon: Award, label: 'أماكن موثقة', value: '100%' },
-            { icon: Clock3, label: 'محدث باستمرار', value: '24/7' },
+            { icon: Compass, label: 'معالم وطنية', value: '360+' },
+            { icon: Sparkles, label: 'مساعد ذكي RAG', value: 'AI 24/7' },
+            { icon: Award, label: 'مسابقة IA Tour', value: '2026' },
+            { icon: Clock3, label: 'ريادة Souf360', value: '100%' },
           ].map(({ icon: Icon, label, value }) => (
-            <div key={label} className="flex flex-col items-center justify-center gap-1.5 py-5 px-2 text-center">
+            <div key={label} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 text-center">
               <Icon className="text-amber-400" size={20} strokeWidth={2} />
-              <span className="text-white/90 font-semibold text-xs md:text-sm">{label}</span>
-              <span className="text-amber-500 font-extrabold text-lg">{value}</span>
+              <span className="text-white/90 font-semibold text-xs">{label}</span>
+              <span className="text-amber-500 font-extrabold text-base">{value}</span>
             </div>
           ))}
         </div>
 
-        <div className="flex justify-center pt-4">
-          <ChevronDown size={18} className="text-white/50" />
+        {/* بطاقة محاور مسابقة IA Tour Algérie 2026 */}
+        <div className="bg-gradient-to-r from-emerald-950/90 via-teal-950/80 to-amber-950/90 backdrop-blur-md border border-amber-500/30 rounded-2xl p-4 text-right shadow-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="bg-amber-500 text-black font-black text-[11px] px-2.5 py-0.5 rounded-lg">IA Tour 2026</span>
+            <span className="text-white font-black text-sm">محاور الابتكار في المنصة الوطنية</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-200">
+            <div className="bg-black/30 p-2.5 rounded-xl border border-white/10">
+              <strong className="text-amber-400 block mb-0.5">01. Rêve (الواقع المعزز)</strong>
+              جولات افتراضية 360° ومعالم الوادي.
+            </div>
+            <div className="bg-black/30 p-2.5 rounded-xl border border-white/10">
+              <strong className="text-amber-400 block mb-0.5">02. Sur-Mesure (الذكاء الاصطناعي)</strong>
+              مساعد سياحي تفاعلي وبرامج رحلات.
+            </div>
+            <div className="bg-black/30 p-2.5 rounded-xl border border-white/10">
+              <strong className="text-amber-400 block mb-0.5">03. Performance (التحليلات)</strong>
+              لوحة تحكم ذكية وإدارة وطنية.
+            </div>
+          </div>
         </div>
       </div>
     </main>
