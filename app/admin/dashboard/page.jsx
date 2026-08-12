@@ -84,7 +84,7 @@ export default function DashboardPage() {
     const { data: mData } = await supabase.from('memories').select('*').order('id', { ascending: false });
     if (mData) setMemories(mData);
 
-    const { data: fData } = await supabase.from('feedbacks').select('*').order('id', { ascending: false });
+    const { data: fData } = await supabase.from('feedback').select('*').order('id', { ascending: false });
     if (fData) setFeedbacks(fData);
 
     const { data: sData } = await supabase.from('site_settings').select('*').eq('id', 1).single();
@@ -573,7 +573,7 @@ export default function DashboardPage() {
                         <td className="p-5 font-black text-[#0F172A] whitespace-nowrap">{f.name || 'مجهول'}</td>
                         <td className="p-5 text-[#475569] font-medium">{f.message}</td>
                         <td className="p-5 text-left">
-                          <button onClick={() => deleteItem('feedbacks', f.id, setFeedbacks)} className="text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-4 py-1.5 rounded-md text-xs font-bold transition-colors">حذف</button>
+                          <button onClick={() => deleteItem('feedback', f.id, setFeedbacks)} className="text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-4 py-1.5 rounded-md text-xs font-bold transition-colors">حذف</button>
                         </td>
                       </tr>
                     ))}

@@ -710,9 +710,9 @@ function MemoriesGallery({ memories }: { memories: OldMemory[] }) {
       <div className="mb-5">
         <SectionEyebrow 
           icon={ImageIcon} 
-          eyebrow={t('memoriesEyebrow' as any) || 'ذكريات'} 
-          title={t('oldMemoriesTitle' as any) || 'عبق الماضي'} 
-          subtitle={t('oldMemoriesSubtitle' as any) || 'صور وذكريات من تاريخ المنطقة'} 
+          eyebrow={t('archiveEyebrow')} 
+          title={t('oldMemories')}
+          subtitle={t('memoriesSubtitle')} 
         />
       </div>
       <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 space-y-3">
