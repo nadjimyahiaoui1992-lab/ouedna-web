@@ -57,7 +57,7 @@ export default function LandingPage() {
       <div className="relative z-10 pt-7 flex justify-center rise-1">
           <div className="inline-flex items-center gap-2 bg-amber-500/15 border border-amber-400/40 px-4 py-1.5 rounded-full text-amber-300 text-[11px] font-bold tracking-wide backdrop-blur-md">
           <Sparkles size={13} className="text-amber-400" />
-          <span>ALGERIA 360 AI • مشاركة رسمية في IA Tour Algérie 2026</span>
+          <span>Souf 360 • المنصة السياحية الذكية لوادي سوف (عاصمة الألف قبة وقبة)</span>
         </div>
       </div>
 
@@ -65,11 +65,11 @@ export default function LandingPage() {
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center max-w-4xl w-full mx-auto text-center px-5 space-y-7 py-10">
         <div className="space-y-5">
           <h1 className="rise-2 text-5xl md:text-7xl font-black tracking-tight text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)]">
-            ALGERIA <span className="text-amber-500">360 AI</span>
+            SOUF <span className="text-amber-500">360</span>
           </h1>
 
           <p className="rise-3 text-lg md:text-2xl font-bold text-gray-100 drop-shadow max-w-2xl mx-auto leading-snug">
-            Discover Algeria. Intelligently. (مع ريادة وادي سوف • Souf360)
+            الدليل السياحي الذكي لولاية وادي سوف (Wadi Souf) • ضمن مبادرة السياحة الذكية
           </p>
 
           <p className="rise-3 text-sm md:text-base text-gray-300 max-w-lg mx-auto leading-relaxed font-medium">

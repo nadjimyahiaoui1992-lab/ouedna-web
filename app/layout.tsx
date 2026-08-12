@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 // معلومات الموقع الرسمية المباشرة لتجنب أي أخطاء في مسارات خارجية
-const siteName = "ALGERIA 360 AI | Souf360";
-const siteTitle = "ALGERIA 360 AI - المنصة السياحية الوطنية الذكية (مشاركة IA Tour Algérie 2026)";
-const siteDescription = "المنصة السياحية الوطنية الذكية المدعومة بالذكاء الاصطناعي والجولات الغامرة. مع وادي سوف (Souf360) كوجهة رائدة أولى لاستكشاف التراث والصحراء.";
+const siteName = "Souf 360 - عاصمة الألف قبة وقبة";
+const siteTitle = "Souf 360 - الدليل السياحي الذكي لولاية وادي سوف (Wadi Souf)";
+const siteDescription = "المنصة السياحية الذكية لوادي سوف (Souf360). استكشف المعالم، التراث، الواحات، والكثبان الذهبية مع المساعد الذكي وخرائط الملاحة الدقيقة.";
 const siteUrl = "https://souf360.vercel.app";
 const panoramicOgImage = "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1200&auto=format&fit=crop";
 
@@ -26,8 +26,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: siteTitle,
   description: siteDescription,
-  keywords: ["ALGERIA 360 AI", "IA Tour Algérie 2026", "Souf360", "السياحة الذكية في الجزائر", "وادي سوف", "اكتشف الجزائر"],
-  applicationName: "ALGERIA 360 AI",
+  keywords: ["Souf 360", "وادي سوف", "السياحة في الجزائر", "Wadi Souf", "El Oued", "اكتشف سوف"],
+  applicationName: "Souf 360",
   alternates: {
     canonical: "/",
   },
