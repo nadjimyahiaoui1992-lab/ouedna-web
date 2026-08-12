@@ -13,7 +13,8 @@ export default async function ExplorePage() {
   const { data: placesData } = await supabase
     .from('places')
     .select('*')
-    .order('created_at', { ascending: true });
+    .eq('status', 'منشور')
+    .order('created_at', { ascending: false });
 
   // 2) جلب بيانات التراث (التي أضفتها أنت)
   const { data: heritageData } = await supabase

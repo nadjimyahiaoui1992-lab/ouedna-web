@@ -73,7 +73,7 @@ export default function LandingPage() {
           </p>
 
           <p className="rise-3 text-sm md:text-base text-gray-300 max-w-lg mx-auto leading-relaxed font-medium">
-            المنصة السياحية الوطنية الذكية المدعومة بالذكاء الاصطناعي، الخرائط التفاعلية، الواقع المعزز، وتجارب الزوار الموثقة.
+            اكتشف المعالم والتراث والأسواق والواحات والكثبان الذهبية في وادي سوف، مع خريطة تفاعلية ومساعد سياحي ذكي.
           </p>
         </div>
 
@@ -108,14 +108,14 @@ export default function LandingPage() {
         </svg>
       </div>
 
-      {/* شريط الإحصائيات ومحاور المسابقة */}
+      {/* شريط خصائص التجربة السياحية في وادي سوف */}
       <div className="rise-5 relative z-10 w-full max-w-5xl mx-auto px-5 pb-9 space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-x-reverse divide-white/10 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
           {[
-            { icon: Compass, label: 'معالم وطنية', value: '360+' },
-            { icon: Sparkles, label: 'مساعد ذكي RAG', value: 'AI 24/7' },
-            { icon: Award, label: 'مسابقة IA Tour', value: '2026' },
-            { icon: Clock3, label: 'ريادة Souf360', value: '100%' },
+            { icon: Compass, label: 'معالم ووجهات', value: 'وادي سوف' },
+            { icon: Sparkles, label: 'مساعد ذكي', value: '24/7' },
+            { icon: Map, label: 'خريطة وملاحة', value: 'GPS' },
+            { icon: Award, label: 'تراث سوف', value: 'أصيل' },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 text-center">
               <Icon className="text-amber-400" size={20} strokeWidth={2} />
@@ -125,24 +125,24 @@ export default function LandingPage() {
           ))}
         </div>
 
-        {/* بطاقة محاور مسابقة IA Tour Algérie 2026 */}
+        {/* بطاقة خصائص Souf 360 */}
         <div className="bg-gradient-to-r from-emerald-950/90 via-teal-950/80 to-amber-950/90 backdrop-blur-md border border-amber-500/30 rounded-2xl p-4 text-right shadow-xl">
           <div className="flex items-center gap-2 mb-2">
-            <span className="bg-amber-500 text-black font-black text-[11px] px-2.5 py-0.5 rounded-lg">IA Tour 2026</span>
-            <span className="text-white font-black text-sm">محاور الابتكار في المنصة الوطنية</span>
+            <span className="bg-amber-500 text-black font-black text-[11px] px-2.5 py-0.5 rounded-lg">Souf 360</span>
+            <span className="text-white font-black text-sm">رحلتك الذكية في عاصمة الألف قبة وقبة</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-200">
             <div className="bg-black/30 p-2.5 rounded-xl border border-white/10">
-              <strong className="text-amber-400 block mb-0.5">01. Rêve (الواقع المعزز)</strong>
-              جولات افتراضية 360° ومعالم الوادي.
+              <strong className="text-amber-400 block mb-0.5">استكشف بسهولة</strong>
+              معالم وادي سوف والواحات والأسواق في مكان واحد.
             </div>
             <div className="bg-black/30 p-2.5 rounded-xl border border-white/10">
-              <strong className="text-amber-400 block mb-0.5">02. Sur-Mesure (الذكاء الاصطناعي)</strong>
-              مساعد سياحي تفاعلي وبرامج رحلات.
+              <strong className="text-amber-400 block mb-0.5">خطط لرحلتك</strong>
+              خريطة تفاعلية ومساعد ذكي ومقترحات عملية للزيارة.
             </div>
             <div className="bg-black/30 p-2.5 rounded-xl border border-white/10">
-              <strong className="text-amber-400 block mb-0.5">03. Performance (التحليلات)</strong>
-              لوحة تحكم ذكية وإدارة وطنية.
+              <strong className="text-amber-400 block mb-0.5">شارك المجتمع</strong>
+              يراجع فريق Souf 360 اقتراحات المعالم وينشر المعتمد منها.
             </div>
           </div>
         </div>

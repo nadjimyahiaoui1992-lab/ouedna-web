@@ -16,11 +16,11 @@ const geistMono = Geist_Mono({
 });
 
 // معلومات الموقع الرسمية المباشرة لتجنب أي أخطاء في مسارات خارجية
-const siteName = "Souf 360 - عاصمة الألف قبة وقبة";
-const siteTitle = "Souf 360 - الدليل السياحي الذكي لولاية وادي سوف (Wadi Souf)";
-const siteDescription = "المنصة السياحية الذكية لوادي سوف (Souf360). استكشف المعالم، التراث، الواحات، والكثبان الذهبية مع المساعد الذكي وخرائط الملاحة الدقيقة.";
+const siteName = "Souf 360 | عاصمة الألف قبة وقبة";
+const siteTitle = "Souf 360 | اكتشف وادي سوف";
+const siteDescription = "دليلك السياحي الذكي لاكتشاف وادي سوف: المعالم، الواحات، الأسواق، التراث، والكثبان الذهبية، مع خريطة تفاعلية ومساعد ذكي.";
 const siteUrl = "https://souf360.vercel.app";
-const panoramicOgImage = "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1200&auto=format&fit=crop";
+const panoramicOgImage = "/og-souf360.jpg";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -38,13 +38,25 @@ export const metadata: Metadata = {
     locale: "ar_AR",
     siteName: siteName,
     url: siteUrl,
-    images: [{ url: panoramicOgImage, alt: "اكتسف سوف  السياحية - ولاية الوادي" }],
+    images: [
+      {
+        url: panoramicOgImage,
+        width: 2560,
+        height: 1440,
+        alt: "واحة وكثبان وادي سوف الذهبية - Souf 360",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
-    images: [{ url: panoramicOgImage, alt: "اكتشف سوف  السياحية - ولاية الوادي" }],
+    images: [
+      {
+        url: panoramicOgImage,
+        alt: "واحة وكثبان وادي سوف الذهبية - Souf 360",
+      },
+    ],
   },
   icons: {
     icon: [
@@ -57,7 +69,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0f172a",
+  themeColor: "#193F38",
 };
 
 export default function RootLayout({

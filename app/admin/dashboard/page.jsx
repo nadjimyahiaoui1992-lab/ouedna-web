@@ -144,13 +144,27 @@ export default function DashboardPage() {
   }
 
   /* ---------- العمليات على البيانات ---------- */
-  async function togglePlaceStatus(place) {
-    const newStatus = place.status === 'منشور' ? 'مسودة' : 'منشور';
-    const { error } = await supabase.from('places').update({ status: newStatus }).eq('id', place.id);
+  async function updatePlaceStatus(place, newStatus) {
+    const { error } = await supabase
+      .from('places')
+      .update({ status: newStatus })
+      .eq('id', place.id);
     if (!error) {
       setPlaces(prev => prev.map(p => p.id === place.id ? { ...p, status: newStatus } : p));
-      showToast(newStatus === 'منشور' ? 'تم نشر المعلم للعامة' : 'تم تحويل المعلم لمسودة');
+      const message = newStatus === 'منشور'
+        ? 'تم اعتماد المعلم ونشره في الموقع والتطبيق'
+        : newStatus === 'مرفوض'
+          ? 'تم رفض الاقتراح وإخفاؤه عن الزوار'
+          : 'تم تحويل المعلم إلى مسودة';
+      showToast(message);
+    } else {
+      showToast('تعذر تحديث حالة المعلم، حاول مجدداً');
     }
+  }
+
+  async function togglePlaceStatus(place) {
+    const newStatus = place.status === 'منشور' ? 'مسودة' : 'منشور';
+    await updatePlaceStatus(place, newStatus);
   }
 
   async function submitAdminForm(e) {
@@ -434,7 +448,14 @@ export default function DashboardPage() {
                         <td className="p-5 font-black text-[#0F172A]">{p.name}</td>
                         <td className="p-5 text-[#475569] font-medium">{p.main_category}</td>
                         <td className="p-5">
-                          <button onClick={() => togglePlaceStatus(p)} className={`px-4 py-1.5 rounded-md text-xs font-black transition-all border ${p.status === 'منشور' ? 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0]' : 'bg-[#F1F5F9] text-[#64748B] border-[#E2E8F0]'}`}>{p.status || 'مسودة'}</button>
+                          {p.status === 'قيد المراجعة' ? (
+                            <div className="flex flex-wrap gap-2">
+                              <button onClick={() => updatePlaceStatus(p, 'منشور')} className="px-3 py-1.5 rounded-md text-xs font-black bg-[#ECFDF5] text-[#065F46] border border-[#A7F3D0] hover:bg-[#D1FAE5]">اعتماد ونشر</button>
+                              <button onClick={() => updatePlaceStatus(p, 'مرفوض')} className="px-3 py-1.5 rounded-md text-xs font-black bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA] hover:bg-[#FEE2E2]">رفض</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => togglePlaceStatus(p)} className={`px-4 py-1.5 rounded-md text-xs font-black transition-all border ${p.status === 'منشور' ? 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0]' : 'bg-[#F1F5F9] text-[#64748B] border-[#E2E8F0]'}`}>{p.status || 'مسودة'}</button>
+                          )}
                         </td>
                         <td className="p-5 text-left">
                           <div className="flex gap-2 justify-end">
