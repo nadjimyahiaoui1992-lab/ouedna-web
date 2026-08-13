@@ -321,7 +321,7 @@ interface MapProps {
   selectedPlace: Place | null;
   onSelectPlace: (place: Place) => void;
   mapTheme?: 'day' | 'night';
-  travelMode?: 'car' | 'walk';
+  travelMode?: 'car' | 'walk' | 'motorcycle';
   userLocation?: { lat: number; lng: number } | null;
   routeTarget?: Place | null;
   onRouteInfoCalculated?: (info: RouteInfo | null) => void;
@@ -383,7 +383,7 @@ export default function Map({
           originLng: String(userLocation.lng),
           destLat: String(routeTarget.lat),
           destLng: String(routeTarget.lng),
-          mode: travelMode === 'walk' ? 'walking' : 'driving',
+          mode: travelMode,
         });
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);

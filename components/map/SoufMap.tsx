@@ -18,6 +18,7 @@ import {
   Moon,
   Car,
   Footprints,
+  Bike,
   Utensils,
   BedDouble,
   Camera,
@@ -135,7 +136,7 @@ function SoufMapInner({
 }) {
   const { dir, t } = useLanguage();
   const [mapTheme, setMapTheme] = useState<'day' | 'night'>('day');
-  const [travelMode, setTravelMode] = useState<'car' | 'walk'>('car');
+  const [travelMode, setTravelMode] = useState<'car' | 'walk' | 'motorcycle'>('car');
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialDestinationQuery || '');
   const [searchFocused, setSearchFocused] = useState(false);
@@ -594,7 +595,7 @@ function SoufMapInner({
               {/* نوع التنقل */}
               <div className="bg-[#0b1428] rounded-2xl border border-white/10 p-3.5">
                 <span className="text-xs font-black text-gray-200">{t('travelMode')}</span>
-                <div className="grid grid-cols-2 gap-2 mt-2.5">
+                <div className="grid grid-cols-3 gap-2 mt-2.5">
                   <button
                     onClick={() => setTravelMode('car')}
                     className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-colors ${
@@ -605,11 +606,19 @@ function SoufMapInner({
                   </button>
                   <button
                     onClick={() => setTravelMode('walk')}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-colors ${
+                    className={`flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${
                       travelMode === 'walk' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10'
                     }`}
                   >
                     <Footprints size={15} /> {t('byFoot')}
+                  </button>
+                  <button
+                    onClick={() => setTravelMode('motorcycle')}
+                    className={`flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${
+                      travelMode === 'motorcycle' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                    }`}
+                  >
+                    <Bike size={15} /> دراجة نارية
                   </button>
                 </div>
               </div>

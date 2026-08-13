@@ -2,84 +2,166 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * حل احترافي ومستقل لحساب المسارات:
- * 1) إن كان لديك خادم OSRM خاص بك (self-hosted) ضَع رابطه في متغيّر البيئة OSRM_SERVER_URL
- *    -> هذا هو الحل المستقل 100% (راجع الشرح المرفق حول استضافة OSRM بنفسك).
- * 2) إن لم يوجد، نحاول خوادم OSRM العامة (احتياطياً فقط، ومن السيرفر لا من المتصفح
- *    لتفادي مشاكل CORS و rate-limit التي يتعرض لها كل زائر على حدة).
- * 3) إن فشلت كل المحاولات، نحسب مساراً تقديرياً بخط مستقيم + سرعة متوسطة،
- *    بحيث لا تظهر أي رسالة خطأ للزائر ولا حاجة لأي تطبيق خارجي أبداً.
- */
+type TravelMode = 'car' | 'walk' | 'motorcycle';
+type RouteStep = {
+  instruction: string;
+  distanceMeters: number;
+  type: 'depart' | 'straight' | 'turn-left' | 'turn-right' | 'roundabout' | 'arrive';
+};
 
-const SELF_HOSTED_OSRM = process.env.OSRM_SERVER_URL; // مثال: https://osrm.souf360.dz
-const PUBLIC_OSRM_SERVERS = [
-  'https://routing.openstreetmap.de/routed-car',
-  'https://router.project-osrm.org',
-];
+type RouteProvider = {
+  baseUrl: string;
+  profile: string;
+};
 
-function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+const CAR_ROUTER = 'https://routing.openstreetmap.de/routed-car';
+const FOOT_ROUTER = 'https://routing.openstreetmap.de/routed-foot';
+const LEGACY_CAR_ROUTER = 'https://router.project-osrm.org';
+
+function isValidCoordinate(latitude: number, longitude: number) {
+  return Number.isFinite(latitude) && Number.isFinite(longitude) &&
+    latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
 }
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const originLat = parseFloat(searchParams.get('originLat') || '');
-  const originLng = parseFloat(searchParams.get('originLng') || '');
-  const destLat = parseFloat(searchParams.get('destLat') || '');
-  const destLng = parseFloat(searchParams.get('destLng') || '');
+function parseMode(value: string | null): TravelMode {
+  switch (value) {
+    case 'walk':
+      return 'walk';
+    case 'motorcycle':
+      return 'motorcycle';
+    default:
+      return 'car';
+  }
+}
 
-  if ([originLat, originLng, destLat, destLng].some((v) => Number.isNaN(v))) {
-    return NextResponse.json({ error: 'إحداثيات غير صالحة' }, { status: 400 });
+function providersFor(mode: TravelMode): RouteProvider[] {
+  const configuredCar = process.env.OSRM_SERVER_URL?.replace(/\/$/, '');
+  const configuredFoot = process.env.OSRM_FOOT_SERVER_URL?.replace(/\/$/, '');
+  const providers: RouteProvider[] = [];
+
+  if (mode === 'walk') {
+    if (configuredFoot) providers.push({ baseUrl: configuredFoot, profile: 'foot' });
+    providers.push({ baseUrl: FOOT_ROUTER, profile: 'foot' });
+    return providers;
   }
 
-  const servers = [SELF_HOSTED_OSRM, ...PUBLIC_OSRM_SERVERS].filter(Boolean) as string[];
+  if (configuredCar) providers.push({ baseUrl: configuredCar, profile: 'driving' });
+  providers.push(
+    { baseUrl: CAR_ROUTER, profile: 'driving' },
+    { baseUrl: LEGACY_CAR_ROUTER, profile: 'driving' }
+  );
+  return providers;
+}
 
-  for (const server of servers) {
+function instructionFor(step: Record<string, unknown>): RouteStep {
+  const maneuver = (step.maneuver ?? {}) as Record<string, unknown>;
+  const type = String(maneuver.type ?? 'continue');
+  const modifier = String(maneuver.modifier ?? '');
+  const street = String(step.name ?? '').trim();
+  const road = street ? ` باتجاه ${street}` : '';
+  const distanceMeters = Number(step.distance ?? 0);
+
+  if (type === 'depart') {
+    return { instruction: `انطلق من موقعك الحالي${road}`, distanceMeters, type: 'depart' };
+  }
+  if (type === 'arrive') {
+    return { instruction: 'وصلت إلى وجهتك', distanceMeters, type: 'arrive' };
+  }
+  if (type === 'roundabout' || type === 'rotary') {
+    return { instruction: `تابع عبر الدوار${road}`, distanceMeters, type: 'roundabout' };
+  }
+  if (modifier.includes('left')) {
+    return { instruction: `انعطف يساراً${road}`, distanceMeters, type: 'turn-left' };
+  }
+  if (modifier.includes('right')) {
+    return { instruction: `انعطف يميناً${road}`, distanceMeters, type: 'turn-right' };
+  }
+  return { instruction: `تابع للأمام${road}`, distanceMeters, type: 'straight' };
+}
+
+async function requestRoute(
+  provider: RouteProvider,
+  originLat: number,
+  originLng: number,
+  destLat: number,
+  destLng: number,
+  mode: TravelMode
+) {
+  const url = new URL(
+    `${provider.baseUrl}/route/v1/${provider.profile}/${originLng},${originLat};${destLng},${destLat}`
+  );
+  url.searchParams.set('overview', 'full');
+  url.searchParams.set('geometries', 'geojson');
+  url.searchParams.set('steps', 'true');
+  url.searchParams.set('alternatives', 'false');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      cache: 'no-store',
+      headers: { 'User-Agent': 'Ouedna/1.10 routing' },
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data.code !== 'Ok' || !Array.isArray(data.routes) || data.routes.length === 0) {
+      return null;
+    }
+
+    const route = data.routes[0];
+    const geometry = route.geometry?.coordinates;
+    if (!Array.isArray(geometry) || geometry.length < 2) return null;
+    const rawSteps = Array.isArray(route.legs)
+      ? route.legs.flatMap((leg: { steps?: unknown }) =>
+          Array.isArray(leg.steps) ? leg.steps : []
+        )
+      : [];
+    const durationSeconds = Number(route.duration ?? 0);
+    const adjustedDuration = mode === 'motorcycle'
+      ? Math.max(60, Math.round(durationSeconds * 0.88))
+      : durationSeconds;
+
+    return {
+      source: provider.baseUrl,
+      profile: mode,
+      estimated: false,
+      coordinates: geometry.map((coordinate: [number, number]) => [coordinate[1], coordinate[0]]),
+      distanceKm: Number((Number(route.distance ?? 0) / 1000).toFixed(1)),
+      durationMin: Math.max(1, Math.ceil(adjustedDuration / 60)),
+      steps: rawSteps.map((step: Record<string, unknown>) => instructionFor(step)),
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const originLat = Number(searchParams.get('originLat'));
+  const originLng = Number(searchParams.get('originLng'));
+  const destLat = Number(searchParams.get('destLat'));
+  const destLng = Number(searchParams.get('destLng'));
+  const mode = parseMode(searchParams.get('mode'));
+
+  if (!isValidCoordinate(originLat, originLng) || !isValidCoordinate(destLat, destLng)) {
+    return NextResponse.json({ error: 'إحداثيات غير صالحة.' }, { status: 400 });
+  }
+
+  for (const provider of providersFor(mode)) {
     try {
-      const url = `${server}/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-      const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
-      clearTimeout(timeoutId);
-
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (data.code !== 'Ok' || !data.routes?.length) continue;
-
-      const route = data.routes[0];
-      return NextResponse.json({
-        source: server === SELF_HOSTED_OSRM ? 'self-hosted' : 'osrm-public',
-        estimated: false,
-        coordinates: route.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]]),
-        distanceKm: parseFloat((route.distance / 1000).toFixed(1)),
-        durationMin: Math.ceil(route.duration / 60),
-      });
+      const result = await requestRoute(provider, originLat, originLng, destLat, destLng, mode);
+      if (result) return NextResponse.json(result, { status: 200 });
     } catch {
-      // جرّب المصدر التالي بصمت
+      // Essayez le fournisseur suivant sans exposer les détails internes.
     }
   }
 
-  // خط الدفاع الأخير: مسار تقديري داخلي، بدون أي خروج لتطبيقات خارجية
-  const distanceKm = haversineKm(originLat, originLng, destLat, destLng);
-  const estimatedSpeedKmh = 35;
-  return NextResponse.json({
-    source: 'fallback-straight-line',
-    estimated: true,
-    coordinates: [
-      [originLat, originLng],
-      [destLat, destLng],
-    ],
-    distanceKm: parseFloat(distanceKm.toFixed(1)),
-    durationMin: Math.max(1, Math.ceil((distanceKm / estimatedSpeedKmh) * 60)),
-  });
+  return NextResponse.json(
+    {
+      error: 'تعذر إيجاد مسار حقيقي الآن. تحقق من اتصال الإنترنت وحاول مجدداً.',
+      code: 'ROUTING_UNAVAILABLE',
+    },
+    { status: 503 }
+  );
 }
