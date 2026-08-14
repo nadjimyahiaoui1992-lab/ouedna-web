@@ -2,13 +2,13 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "سوف 360 | دليل السياحة في الوادي",
-    short_name: "سوف 360",
-    description: "منصة سياحية حديثة لاستكشاف أماكن الوادي عبر خريطة تفاعلية.",
+    name: "وادنا Ouedna | دليل وادي سوف",
+    short_name: "وادنا",
+    description: "تطبيق ويب لاكتشاف معالم وادي سوف، التخطيط للرحلة، والمجتمع المحلي.",
     start_url: "/",
     display: "standalone",
     background_color: "#f8f5ef",
-    theme_color: "#264653",
+    theme_color: "#0E4B42",
     icons: [
       {
         src: "/icon-192.png",
