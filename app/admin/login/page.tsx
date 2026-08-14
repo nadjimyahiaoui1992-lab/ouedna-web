@@ -31,7 +31,22 @@ export default function LoginPage() {
         setErrorMsg("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
         setLoading(false); // إيقاف حالة التحميل ليعود الزر لطبيعته
       } else {
-        // توجيه المستخدم إلى لوحة التحكم بعد نجاح الدخول
+        const { data: profile, error: profileError } = await supabase
+          .from("admin_profiles")
+          .select("role,permissions")
+          .eq("id", data.user.id)
+          .maybeSingle();
+        const permissions = profile?.permissions;
+        const hasPermission = profile?.role === "admin" || (
+          permissions && typeof permissions === "object" &&
+          Object.values(permissions as Record<string, unknown>).some((value) => value === true)
+        );
+        if (profileError || !hasPermission) {
+          await supabase.auth.signOut();
+          setErrorMsg("هذا الحساب لا يملك صلاحية الوصول إلى لوحة الإدارة.");
+          setLoading(false);
+          return;
+        }
         router.push("/admin/dashboard");
         router.refresh();
       }
@@ -53,7 +68,7 @@ export default function LoginPage() {
             تسجيل الدخول
           </h1>
           <p className="text-gray-700 text-sm font-medium">
-            لوحة تحكم منصة اكتشف سوف السياحية
+            لوحة تحكم وادنا لإدارة محتوى ومعالم ولاية الوادي
           </p>
         </div>
 
@@ -75,7 +90,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-4 py-3 border border-gray-300/50 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all bg-white/90 shadow-sm"
-              placeholder="admin@souf360.com"
+              placeholder="admin@ouedna.dz"
               dir="ltr"
             />
           </div>

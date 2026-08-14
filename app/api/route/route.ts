@@ -17,21 +17,26 @@ type RouteProvider = {
 const CAR_ROUTER = 'https://routing.openstreetmap.de/routed-car';
 const FOOT_ROUTER = 'https://routing.openstreetmap.de/routed-foot';
 const LEGACY_CAR_ROUTER = 'https://router.project-osrm.org';
+const MAX_ROUTE_DISTANCE_KM = 500;
 
 function isValidCoordinate(latitude: number, longitude: number) {
-  return Number.isFinite(latitude) && Number.isFinite(longitude) &&
-    latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+  return Number.isFinite(latitude) && Number.isFinite(longitude)
+    && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
 }
 
-function parseMode(value: string | null): TravelMode {
-  switch (value) {
-    case 'walk':
-      return 'walk';
-    case 'motorcycle':
-      return 'motorcycle';
-    default:
-      return 'car';
-  }
+function parseMode(value: string | null): TravelMode | null {
+  if (!value || value === 'car') return 'car';
+  if (value === 'walk' || value === 'motorcycle') return value;
+  return null;
+}
+
+function distanceKm(originLat: number, originLng: number, destLat: number, destLng: number) {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const deltaLat = toRadians(destLat - originLat);
+  const deltaLng = toRadians(destLng - originLng);
+  const a = Math.sin(deltaLat / 2) ** 2
+    + Math.cos(toRadians(originLat)) * Math.cos(toRadians(destLat)) * Math.sin(deltaLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function providersFor(mode: TravelMode): RouteProvider[] {
@@ -48,7 +53,7 @@ function providersFor(mode: TravelMode): RouteProvider[] {
   if (configuredCar) providers.push({ baseUrl: configuredCar, profile: 'driving' });
   providers.push(
     { baseUrl: CAR_ROUTER, profile: 'driving' },
-    { baseUrl: LEGACY_CAR_ROUTER, profile: 'driving' }
+    { baseUrl: LEGACY_CAR_ROUTER, profile: 'driving' },
   );
   return providers;
 }
@@ -61,21 +66,11 @@ function instructionFor(step: Record<string, unknown>): RouteStep {
   const road = street ? ` باتجاه ${street}` : '';
   const distanceMeters = Number(step.distance ?? 0);
 
-  if (type === 'depart') {
-    return { instruction: `انطلق من موقعك الحالي${road}`, distanceMeters, type: 'depart' };
-  }
-  if (type === 'arrive') {
-    return { instruction: 'وصلت إلى وجهتك', distanceMeters, type: 'arrive' };
-  }
-  if (type === 'roundabout' || type === 'rotary') {
-    return { instruction: `تابع عبر الدوار${road}`, distanceMeters, type: 'roundabout' };
-  }
-  if (modifier.includes('left')) {
-    return { instruction: `انعطف يساراً${road}`, distanceMeters, type: 'turn-left' };
-  }
-  if (modifier.includes('right')) {
-    return { instruction: `انعطف يميناً${road}`, distanceMeters, type: 'turn-right' };
-  }
+  if (type === 'depart') return { instruction: `انطلق من موقعك الحالي${road}`, distanceMeters, type: 'depart' };
+  if (type === 'arrive') return { instruction: 'وصلت إلى وجهتك', distanceMeters, type: 'arrive' };
+  if (type === 'roundabout' || type === 'rotary') return { instruction: `تابع عبر الدوار${road}`, distanceMeters, type: 'roundabout' };
+  if (modifier.includes('left')) return { instruction: `انعطف يساراً${road}`, distanceMeters, type: 'turn-left' };
+  if (modifier.includes('right')) return { instruction: `انعطف يميناً${road}`, distanceMeters, type: 'turn-right' };
   return { instruction: `تابع للأمام${road}`, distanceMeters, type: 'straight' };
 }
 
@@ -85,11 +80,9 @@ async function requestRoute(
   originLng: number,
   destLat: number,
   destLng: number,
-  mode: TravelMode
+  mode: TravelMode,
 ) {
-  const url = new URL(
-    `${provider.baseUrl}/route/v1/${provider.profile}/${originLng},${originLat};${destLng},${destLat}`
-  );
+  const url = new URL(`${provider.baseUrl}/route/v1/${provider.profile}/${originLng},${originLat};${destLng},${destLat}`);
   url.searchParams.set('overview', 'full');
   url.searchParams.set('geometries', 'geojson');
   url.searchParams.set('steps', 'true');
@@ -105,17 +98,13 @@ async function requestRoute(
     });
     if (!response.ok) return null;
     const data = await response.json();
-    if (data.code !== 'Ok' || !Array.isArray(data.routes) || data.routes.length === 0) {
-      return null;
-    }
+    if (data.code !== 'Ok' || !Array.isArray(data.routes) || data.routes.length === 0) return null;
 
     const route = data.routes[0];
     const geometry = route.geometry?.coordinates;
     if (!Array.isArray(geometry) || geometry.length < 2) return null;
     const rawSteps = Array.isArray(route.legs)
-      ? route.legs.flatMap((leg: { steps?: unknown }) =>
-          Array.isArray(leg.steps) ? leg.steps : []
-        )
+      ? route.legs.flatMap((leg: { steps?: unknown }) => Array.isArray(leg.steps) ? leg.steps : [])
       : [];
     const durationSeconds = Number(route.duration ?? 0);
     const adjustedDuration = mode === 'motorcycle'
@@ -136,32 +125,48 @@ async function requestRoute(
   }
 }
 
+function jsonResponse(payload: unknown, status: number, cacheControl: string) {
+  return NextResponse.json(payload, {
+    status,
+    headers: { 'Cache-Control': cacheControl },
+  });
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
+  const required = ['originLat', 'originLng', 'destLat', 'destLng'] as const;
+  if (required.some((name) => !searchParams.get(name)?.trim())) {
+    return jsonResponse({ error: 'المعلمات المطلوبة للإحداثيات مفقودة.' }, 400, 'no-store');
+  }
+
   const originLat = Number(searchParams.get('originLat'));
   const originLng = Number(searchParams.get('originLng'));
   const destLat = Number(searchParams.get('destLat'));
   const destLng = Number(searchParams.get('destLng'));
   const mode = parseMode(searchParams.get('mode'));
 
-  if (!isValidCoordinate(originLat, originLng) || !isValidCoordinate(destLat, destLng)) {
-    return NextResponse.json({ error: 'إحداثيات غير صالحة.' }, { status: 400 });
+  if (!mode || !isValidCoordinate(originLat, originLng) || !isValidCoordinate(destLat, destLng)) {
+    return jsonResponse({ error: 'إحداثيات أو وسيلة تنقل غير صالحة.' }, 400, 'no-store');
+  }
+  if (distanceKm(originLat, originLng, destLat, destLng) > MAX_ROUTE_DISTANCE_KM) {
+    return jsonResponse({ error: 'المسافة المطلوبة تتجاوز نطاق الخدمة.' }, 400, 'no-store');
   }
 
   for (const provider of providersFor(mode)) {
     try {
       const result = await requestRoute(provider, originLat, originLng, destLat, destLng, mode);
-      if (result) return NextResponse.json(result, { status: 200 });
+      if (result) return jsonResponse(result, 200, 'public, s-maxage=300, stale-while-revalidate=900');
     } catch {
-      // Essayez le fournisseur suivant sans exposer les détails internes.
+      // Continue to the next provider without exposing upstream details.
     }
   }
 
-  return NextResponse.json(
+  return jsonResponse(
     {
       error: 'تعذر إيجاد مسار حقيقي الآن. تحقق من اتصال الإنترنت وحاول مجدداً.',
       code: 'ROUTING_UNAVAILABLE',
     },
-    { status: 503 }
+    503,
+    'no-store',
   );
 }
