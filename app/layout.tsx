@@ -14,7 +14,7 @@ import PwaRuntime from "./PwaRuntime";
 const siteName = "Ouedna | وادنا";
 const siteTitle = "وادنا Ouedna | اكتشف الوادي على إيقاعك";
 const siteDescription = "وادنا هو الدليل السياحي الذكي لاكتشاف ولاية الوادي: المعالم، الواحات، الأسواق، التراث، والخرائط في تطبيق واحد.";
-const siteUrl = "https://souf360.vercel.app";
+const siteUrl = "https://ouedna.vercel.app";
 const panoramicOgImage = "/ouedna/hero-oasis.jpg";
 
 export const metadata: Metadata = {
