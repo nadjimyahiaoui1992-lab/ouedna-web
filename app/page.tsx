@@ -1,152 +1,45 @@
-import Link from 'next/link';
-import Image from 'next/image';
-import { MapPin, Map, Compass, Award, Clock3, Sparkles, ChevronDown } from 'lucide-react';
+// Ouedna Vercel landing page: warm editorial travel, RTL-first, oasis green and amber sand.
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowUpLeft, Check, Compass, Download, History, MapPin, Navigation, Route, ShieldCheck, Sparkles, Users } from "lucide-react";
+
+const APK_URL = "https://github.com/nadjimyahiaoui1992-lab/souf-tour/releases/download/v2.0.4/ouedna-2.0.4-universal.apk";
+const RELEASE_URL = "https://github.com/nadjimyahiaoui1992-lab/souf-tour/releases/tag/v2.0.4";
+const highlights = [
+  { number: "01", title: "خريطة حيّة", text: "معالم قريبة، صور حقيقية، ومسار واضح من أول خطوة.", icon: MapPin },
+  { number: "02", title: "دليل الطريق", text: "ملاحة صوتية وحساب للوقت بالسيارة أو المشي أو الدراجة.", icon: Navigation },
+  { number: "03", title: "صوت الزوار", text: "اقرأ التجارب وشارك اقتراحاً يساعد الزائر التالي.", icon: Users },
+];
+const places = [
+  { tag: "عمارة", title: "ملامح سوفية", text: "قباب بيضاء وظلال ترسم قصة المدينة.", image: "/ouedna/local-architecture.webp" },
+  { tag: "واحة", title: "أسواق وظلال النخيل", text: "تفاصيل يومية وروائح لا تُنسى.", image: "/ouedna/palm-oasis.jpg" },
+  { tag: "رمال", title: "إيقاع الكثبان", text: "طريق هادئ بين الرمل والذاكرة.", image: "/ouedna/dunes.webp" },
+];
 
 export default function LandingPage() {
   return (
-    <main
-      dir="rtl"
-      className="relative min-h-screen w-full flex flex-col text-white overflow-hidden"
-      style={{ fontFamily: "'Tajawal', 'IBM Plex Sans Arabic', sans-serif" }}
-    >
-      {/* خطوط عربية مميزة: تجوال للعناوين، آي بي إم بلكس للنصوص */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap');
-        @keyframes riseIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes driftSlow { from { transform: translateX(0); } to { transform: translateX(-4%); } }
-        .rise-1 { animation: riseIn 0.9s cubic-bezier(0.16,1,0.3,1) 0.05s both; }
-        .rise-2 { animation: riseIn 0.9s cubic-bezier(0.16,1,0.3,1) 0.2s both; }
-        .rise-3 { animation: riseIn 0.9s cubic-bezier(0.16,1,0.3,1) 0.35s both; }
-        .rise-4 { animation: riseIn 0.9s cubic-bezier(0.16,1,0.3,1) 0.5s both; }
-        .rise-5 { animation: riseIn 0.9s cubic-bezier(0.16,1,0.3,1) 0.65s both; }
-        .dune-drift { animation: driftSlow 40s linear infinite alternate; }
-        @media (prefers-reduced-motion: reduce) {
-          .rise-1, .rise-2, .rise-3, .rise-4, .rise-5, .dune-drift { animation: none !important; }
-        }
-      `}</style>
+    <main id="main-content" className="ouedna-site" dir="rtl">
+      <header className="ouedna-header"><div className="ouedna-header__inner">
+        <Link className="ouedna-brand" href="/" aria-label="Ouedna - الصفحة الرئيسية"><span className="ouedna-brand__mark"><Image src="/ouedna/mark.svg" alt="" width={36} height={36} /></span><span><strong>وادنا</strong><small>Ouedna</small></span></Link>
+        <nav className="ouedna-nav" aria-label="التنقل الرئيسي"><a href="#discover">اكتشف</a><a href="#places">المعالم</a><a href="#community">صوت الزوار</a><a href="#install">طريقة التثبيت</a></nav>
+        <div className="ouedna-header-actions"><a className="ouedna-header-download" href={APK_URL}><Download size={15} /> تحميل التطبيق</a><details className="ouedna-mobile-menu"><summary aria-label="فتح القائمة">☰</summary><div><a href="#discover">اكتشف</a><a href="#places">المعالم</a><a href="#community">صوت الزوار</a><a href="#install">طريقة التثبيت</a></div></details></div>
+      </div></header>
 
-      {/* خلفية الصحراء: كثبان ذهبية وواحة نخيل، تعكس طبيعة واد سوف الفلاحية وسط الرمال */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="https://images.unsplash.com/photo-1770557386874-739c55a381f3?q=80&w=1920&auto=format&fit=crop"
-          alt=""
-          fill
-          priority
-          fetchPriority="high"
-          sizes="100vw"
-          className="object-cover"
-        />
-        {/* تدرج من سماء ليلية نيلية أعلى الصورة إلى عتمة سفلية، يحاكي غروب الوادي */}
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-950/70 via-black/20 to-black/85" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent" />
-        <div className="absolute inset-0 bg-amber-900/10 mix-blend-overlay" />
-      </div>
+      <section className="ouedna-hero"><Image className="ouedna-hero__image" src="/ouedna/hero-oasis.jpg" alt="واحة وكثبان وادي سوف عند الغروب" fill priority sizes="100vw" /><div className="ouedna-hero__veil" /><div className="ouedna-hero__dune" /><div className="ouedna-hero__content ouedna-width">
+        <div className="ouedna-hero__copy"><p className="ouedna-eyebrow ouedna-eyebrow--light"><span /> الدليل السياحي لوادي سوف</p><h1>اكتشف الوادي<br /><em>على إيقاعك.</em></h1><p className="ouedna-hero__lede">من أول نظرة إلى أول طريق، يجمع لك وادنا المعالم والخرائط وحكايات الناس في تطبيق واحد، خفيف وواضح.</p><div className="ouedna-hero__actions"><a className="ouedna-button ouedna-button--amber" href={APK_URL}><Download size={18} /> حمّل وادنا مجاناً</a><a className="ouedna-light-link" href="#discover">تعرّف على التجربة <ArrowUpLeft size={16} /></a></div><div className="ouedna-hero__meta"><span><ShieldCheck size={14} /> إصدار Android 2.0.4</span><i /><span>خارج متجر Play</span></div></div>
+        <div className="ouedna-route-card"><div className="ouedna-route-card__label"><Compass size={15} /> اتجاهك يبدأ من هنا</div><div className="ouedna-route-card__window"><div className="ouedna-map-lines" /><div className="ouedna-map-pin ouedna-map-pin--one"><span>واحة</span></div><div className="ouedna-map-pin ouedna-map-pin--two"><span>متحف</span></div><div className="ouedna-map-route" /></div><div className="ouedna-route-card__footer"><div><small>وجهتك التالية</small><strong>واحة النخيل</strong></div><span><Route size={14} /> 12 د</span></div></div>
+      </div></section>
 
-      {/* خط أفق القِباب: توقيع بصري مرسوم يدويًا يحيل إلى لقب "مدينة الألف قبة وقبة" */}
-      <div className="absolute inset-x-0 bottom-0 z-[1] h-24 md:h-32 opacity-90 pointer-events-none">
-        <svg className="w-full h-full" viewBox="0 0 1200 120" preserveAspectRatio="none" fill="none">
-          <path
-            d="M0 120 L0 74 Q20 74 20 60 A18 18 0 0 1 56 60 Q56 74 76 74 L110 74 Q110 60 122 60 A14 14 0 0 1 150 60 Q150 74 162 74 L205 74 Q205 52 222 52 A24 24 0 0 1 270 52 Q270 74 287 74 L330 74 Q330 62 342 62 A15 15 0 0 1 372 62 Q372 74 384 74 L430 74 Q430 46 452 46 A28 28 0 0 1 508 46 Q508 74 530 74 L575 74 Q575 60 587 60 A14 14 0 0 1 615 60 Q615 74 627 74 L672 74 Q672 50 692 50 A26 26 0 0 1 744 50 Q744 74 764 74 L805 74 Q805 62 817 62 A15 15 0 0 1 847 62 Q847 74 859 74 L905 74 Q905 44 928 44 A29 29 0 0 1 986 44 Q986 74 1009 74 L1050 74 Q1050 60 1062 60 A14 14 0 0 1 1090 60 Q1090 74 1102 74 L1200 74 L1200 120 Z"
-            fill="#050505"
-            fillOpacity="0.9"
-          />
-        </svg>
-      </div>
+      <section className="ouedna-intro" id="discover"><div className="ouedna-width ouedna-intro__grid"><div className="ouedna-kicker">Ouedna / 01<i /></div><div><p className="ouedna-eyebrow">الرحلة تبدأ من المعرفة</p><h2>كل ما تحتاجه<br /><span>لتشعر بالمكان.</span></h2></div><div className="ouedna-intro__copy"><p>من قباب الوادي البيضاء إلى ظل النخيل ورائحة السوق، وادنا ليس دليلاً جامداً. إنه رفيقك في سوف: يوصلك إلى المعلم، يروي لك قصته، ويترك لك مساحة لتصنع تجربتك.</p><a className="ouedna-text-link" href="#install">لماذا وادنا؟ <ArrowUpLeft size={16} /></a></div></div></section>
+      <div className="ouedna-dune-divider ouedna-width"><span>وادي سوف</span><i /></div>
+      <section className="ouedna-highlights"><div className="ouedna-width ouedna-highlights__grid">{highlights.map(({ number, title, text, icon: Icon }) => <article key={number}><b>{number}</b><span><Icon size={20} /></span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
 
-      {/* شارة علوية صغيرة */}
-      <div className="relative z-10 pt-7 flex justify-center rise-1">
-          <div className="inline-flex items-center gap-2 bg-amber-500/15 border border-amber-400/40 px-4 py-1.5 rounded-full text-amber-300 text-[11px] font-bold tracking-wide backdrop-blur-md">
-          <Sparkles size={13} className="text-amber-400" />
-          <span>Souf 360 • المنصة السياحية الذكية لوادي سوف (عاصمة الألف قبة وقبة)</span>
-        </div>
-      </div>
+      <section className="ouedna-places" id="places"><div className="ouedna-width"><div className="ouedna-section-heading"><div><p className="ouedna-eyebrow">من الخريطة إلى الذاكرة</p><h2>النخيل، القباب،<br /><span>وذاكرة الرمل.</span></h2></div><p>ابدأ من المعالم التي تعرفها، ثم دع وادنا يأخذك إلى أزقة سوف وتفاصيل لم تكن تبحث عنها.</p></div><div className="ouedna-places__grid">{places.map((place, index) => <article className={`ouedna-place ouedna-place--${index + 1}`} key={place.title}><div className="ouedna-place__image"><Image src={place.image} alt={place.title} fill sizes="(max-width: 680px) 50vw, 33vw" /><span>{place.tag}</span><small>وادنا / 0{index + 1}</small></div><div className="ouedna-place__body"><h3>{place.title}</h3><p>{place.text}</p><b><ArrowUpLeft size={16} /></b></div></article>)}</div></div></section>
+      <section className="ouedna-journey"><Image src="/ouedna/dunes.webp" alt="كثبان وادي سوف" fill sizes="100vw" /><div className="ouedna-journey__veil" /><div className="ouedna-width ouedna-journey__content"><p>رحلتك، بطريقتك</p><h2>لا تكتفِ<br /><em>بالمشاهدة.</em></h2><span>اتبع ظلال النخيل، حدد الطريق إلى القباب، واستمع إلى الحكاية متى وجدت شيئاً يستحق.</span><a className="ouedna-button ouedna-button--outline" href={APK_URL}>ابدأ رحلتك <ArrowUpLeft size={17} /></a></div><div className="ouedna-journey__index">02 <i /> الخريطة الحيّة</div></section>
 
-      {/* المحتوى الرئيسي */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center max-w-4xl w-full mx-auto text-center px-5 space-y-7 py-10">
-        <div className="space-y-5">
-          <h1 className="rise-2 text-5xl md:text-7xl font-black tracking-tight text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)]">
-            SOUF <span className="text-amber-500">360</span>
-          </h1>
-
-          <p className="rise-3 text-lg md:text-2xl font-bold text-gray-100 drop-shadow max-w-2xl mx-auto leading-snug">
-            الدليل السياحي الذكي لولاية وادي سوف (Wadi Souf) • ضمن مبادرة السياحة الذكية
-          </p>
-
-          <p className="rise-3 text-sm md:text-base text-gray-300 max-w-lg mx-auto leading-relaxed font-medium">
-            اكتشف المعالم والتراث والأسواق والواحات والكثبان الذهبية في وادي سوف، مع خريطة تفاعلية ومساعد سياحي ذكي.
-          </p>
-        </div>
-
-        {/* أزرار التوجيه */}
-        <div className="rise-4 flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-          <Link
-            href="/explore"
-            className="group w-full sm:w-auto flex items-center justify-center gap-2.5 bg-amber-500 hover:bg-amber-400 text-black font-bold px-9 py-4 rounded-xl shadow-[0_8px_30px_rgba(245,158,11,0.35)] transition-all duration-300 hover:scale-[1.03] text-sm"
-          >
-            <MapPin size={18} className="transition-transform group-hover:-translate-y-0.5" />
-            <span>استكشف المعالم</span>
-          </Link>
-
-          <Link
-            href="/map"
-            className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-white/5 hover:bg-white/10 text-white font-bold px-9 py-4 rounded-xl border border-white/25 backdrop-blur-md transition-all duration-300 hover:scale-[1.03] text-sm"
-          >
-            <Map size={18} className="text-sky-300" />
-            <span>عرض الخريطة</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* فاصل زخرفي: خط الكثبان النجمية، إشارة إلى الشكل الفريد لكثبان سوف */}
-      <div className="relative z-10 w-full overflow-hidden h-6 opacity-40">
-        <svg className="dune-drift w-[140%]" viewBox="0 0 1400 24" preserveAspectRatio="none" fill="none">
-          <path
-            d="M0 18 Q 35 4, 70 18 T 140 18 T 210 18 T 280 18 T 350 18 T 420 18 T 490 18 T 560 18 T 630 18 T 700 18 T 770 18 T 840 18 T 910 18 T 980 18 T 1050 18 T 1120 18 T 1190 18 T 1260 18 T 1330 18 T 1400 18"
-            stroke="#f59e0b"
-            strokeWidth="1"
-          />
-        </svg>
-      </div>
-
-      {/* شريط خصائص التجربة السياحية في وادي سوف */}
-      <div className="rise-5 relative z-10 w-full max-w-5xl mx-auto px-5 pb-9 space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-x-reverse divide-white/10 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
-          {[
-            { icon: Compass, label: 'معالم ووجهات', value: 'وادي سوف' },
-            { icon: Sparkles, label: 'مساعد ذكي', value: '24/7' },
-            { icon: Map, label: 'خريطة وملاحة', value: 'GPS' },
-            { icon: Award, label: 'تراث سوف', value: 'أصيل' },
-          ].map(({ icon: Icon, label, value }) => (
-            <div key={label} className="flex flex-col items-center justify-center gap-1.5 py-4 px-2 text-center">
-              <Icon className="text-amber-400" size={20} strokeWidth={2} />
-              <span className="text-white/90 font-semibold text-xs">{label}</span>
-              <span className="text-amber-500 font-extrabold text-base">{value}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* بطاقة خصائص Souf 360 */}
-        <div className="bg-gradient-to-r from-emerald-950/90 via-teal-950/80 to-amber-950/90 backdrop-blur-md border border-amber-500/30 rounded-2xl p-4 text-right shadow-xl">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="bg-amber-500 text-black font-black text-[11px] px-2.5 py-0.5 rounded-lg">Souf 360</span>
-            <span className="text-white font-black text-sm">رحلتك الذكية في عاصمة الألف قبة وقبة</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-200">
-            <div className="bg-black/30 p-2.5 rounded-xl border border-white/10">
-              <strong className="text-amber-400 block mb-0.5">استكشف بسهولة</strong>
-              معالم وادي سوف والواحات والأسواق في مكان واحد.
-            </div>
-            <div className="bg-black/30 p-2.5 rounded-xl border border-white/10">
-              <strong className="text-amber-400 block mb-0.5">خطط لرحلتك</strong>
-              خريطة تفاعلية ومساعد ذكي ومقترحات عملية للزيارة.
-            </div>
-            <div className="bg-black/30 p-2.5 rounded-xl border border-white/10">
-              <strong className="text-amber-400 block mb-0.5">شارك المجتمع</strong>
-              يراجع فريق Souf 360 اقتراحات المعالم وينشر المعتمد منها.
-            </div>
-          </div>
-        </div>
-      </div>
+      <section className="ouedna-community" id="community"><div className="ouedna-width ouedna-community__grid"><div><p className="ouedna-eyebrow">صوت الزوار / 03</p><h2>المكان يكبر<br /><span>بأهله.</span></h2><p>جرب، قيّم، شارك صورة من السوق أو اقترح معلماً جديداً. كل ملاحظة تساعد الزائر التالي على أن يجد الوادي كما أحببته.</p><a className="ouedna-text-link" href="#install">انضم إلى الحكاية <ArrowUpLeft size={16} /></a></div><div className="ouedna-notes"><article><History size={22} /><div><strong>ذاكرة المكان</strong><p>صور قديمة وحكايات تحفظ روح سوف.</p></div><b>01</b></article><article><Sparkles size={22} /><div><strong>تجربتك مهمة</strong><p>ملاحظتك تصل إلى الفريق وتُراجع بعناية.</p></div><b>02</b></article><article><Users size={22} /><div><strong>نكتشف معاً</strong><p>مجتمع صغير يصنع دليلاً أكبر.</p></div><b>03</b></article></div></div></section>
+      <section className="ouedna-install" id="install"><div className="ouedna-width ouedna-install__grid"><div><p className="ouedna-eyebrow">جاهز للانطلاق؟ / 04</p><h2>خذ وادنا<br /><span>معك.</span></h2><p>التطبيق مجاني، خفيف، ومصمم ليعمل معك خارج المتجر. نزّل النسخة الرسمية ثم افتحها لتبدأ.</p><a className="ouedna-button ouedna-button--green" href={APK_URL}><Download size={18} /> تحميل Ouedna 2.0.4</a><a className="ouedna-release-link" href={RELEASE_URL}>عرض الإصدار والتحقق من SHA-256 <ArrowUpLeft size={15} /></a></div><div className="ouedna-install__steps"><article><b>01</b><div><strong>نزّل الملف</strong><p>اضغط على زر التحميل من هاتف Android.</p></div><Check size={17} /></article><article><b>02</b><div><strong>اسمح بالتثبيت</strong><p>فعّل السماح للمتصفح عند طلب Android ذلك.</p></div><ShieldCheck size={17} /></article><article><b>03</b><div><strong>افتح وابدأ</strong><p>ثبّت التطبيق، ثم استخدم الخريطة كما تريد.</p></div><Compass size={17} /></article></div></div></section>
+      <footer className="ouedna-footer"><div className="ouedna-width ouedna-footer__top"><Link className="ouedna-brand" href="/"><span className="ouedna-brand__mark"><Image src="/ouedna/mark.svg" alt="" width={36} height={36} /></span><span><strong>وادنا</strong><small>Ouedna</small></span></Link><p>بوابة اكتشاف وادي سوف، من الموقع إلى الطريق.</p><nav><Link href="/explore">المعالم</Link><Link href="/map">الخريطة</Link><a href="#install">تحميل التطبيق</a></nav></div><div className="ouedna-width ouedna-footer__bottom"><span>© 2026 Ouedna · وادنا</span><span>صنع بحب من أجل الوادي</span></div></footer>
     </main>
   );
 }
