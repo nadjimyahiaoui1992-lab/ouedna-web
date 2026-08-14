@@ -48,7 +48,12 @@ export default function ResetPasswordPage() {
     const redirectTo = `${window.location.origin}/admin/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
     if (error) {
-      setErrorMsg("تعذر إرسال رابط الاستعادة الآن. تحقق من البريد الإلكتروني ثم أعد المحاولة.");
+      const isRateLimited = error.status === 429 || /rate limit/i.test(error.message);
+      setErrorMsg(
+        isRateLimited
+          ? "تم إرسال رسائل استعادة عدة مؤخراً. انتظر ساعة تقريباً ثم أعد المحاولة من هذه الصفحة فقط."
+          : "تعذر إرسال رابط الاستعادة الآن. تحقق من البريد الإلكتروني ثم أعد المحاولة.",
+      );
     } else {
       setMessage("أرسلنا رابطاً آمناً إلى بريدك. افتح أحدث رسالة ثم عُد إلى هذه الصفحة لإدخال كلمة المرور الجديدة.");
     }
