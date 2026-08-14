@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/config";
@@ -122,6 +123,9 @@ export default function LoginPage() {
             {loading ? "جاري تسجيل الدخول..." : "دخول إلى لوحة التحكم"}
           </button>
         </form>
+        <Link href="/admin/reset-password" className="mt-5 block text-center text-sm font-bold text-amber-700 hover:text-amber-800">
+          نسيت كلمة المرور؟
+        </Link>
       </div>
     </div>
   );
