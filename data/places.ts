@@ -40,7 +40,7 @@ export async function getPlacesFromDB(): Promise<Place[]> {
       id: item.id,
       name: item.name,
       subtitle: item.description ? item.description.substring(0, 40) + "..." : item.name,
-      category: item.category || 'تاريخ وثقافة',
+      category: item.category || item.main_category || 'تاريخ وثقافة',
       municipality: item.municipality || "الوادي",
       district: item.district || "الوادي",
       popularity: "high",

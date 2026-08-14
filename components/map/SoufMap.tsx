@@ -106,6 +106,7 @@ function formatMeters(m: number, kmLabel: string) {
 
 export default function SoufMap(props: {
   places: Place[];
+  embedded?: boolean;
   initialDestinationQuery?: string | null;
   initialPlaceId?: string | null;
   initialLat?: number | null;
@@ -121,13 +122,15 @@ export default function SoufMap(props: {
 
 function SoufMapInner({
   places,
+  embedded = false,
   initialDestinationQuery,
   initialPlaceId = null,
   initialLat = null,
   initialLng = null,
   initialAutoRoute = false,
-}: {
-  places: Place[];
+  }: {
+    places: Place[];
+    embedded?: boolean;
   initialDestinationQuery?: string | null;
   initialPlaceId?: string | null;
   initialLat?: number | null;
@@ -326,9 +329,9 @@ function SoufMapInner({
   const cardRouteInfo = isCurrentRouteTarget ? routeInfo : null;
 
   return (
-    <div dir={dir} className="relative w-full h-[100dvh] flex flex-col bg-[#0b1220] text-white overflow-hidden">
+    <div dir={dir} className={`relative w-full ${embedded ? 'h-full' : 'h-[100dvh]'} flex flex-col bg-[#0b1220] text-white overflow-hidden`}>
       {/* ===================== الشريط العلوي ===================== */}
-      <header className="shrink-0 z-[1100] bg-[#0e1730] border-b border-white/10 shadow-lg">
+      <header className={`${embedded ? 'hidden ' : ''}shrink-0 z-[1100] bg-[#0e1730] border-b border-white/10 shadow-lg`}>
         <div className="flex items-center justify-between gap-3 px-3 sm:px-5 py-2.5">
           {/* الشعار + شريط البحث */}
           <div className="flex items-center gap-3 min-w-0 flex-1">

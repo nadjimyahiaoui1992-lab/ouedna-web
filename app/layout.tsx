@@ -2,6 +2,10 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import "./platform.css";
+import "./app-shell.css";
+import "./app-pages.css";
+import "./guide.css";
+import "./itinerary.css";
 import "leaflet/dist/leaflet.css";
 
 // Ouedna brand metadata: Arabic-first tourism gateway for El Oued, Algeria.
