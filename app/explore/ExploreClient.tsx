@@ -12,9 +12,10 @@ import {
 } from 'lucide-react';
 import { LanguageProvider, useLanguage, useAutoTranslate, DictKey } from '@/lib/i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/supabase/config';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = SUPABASE_URL;
+const supabaseKey = SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 type Place = {

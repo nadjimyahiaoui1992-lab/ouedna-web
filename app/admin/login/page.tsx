@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 // إعداد الاتصال بقاعدة بيانات Supabase (نسخة متوافقة مع الـ middleware عبر cookies)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabase = createBrowserClient(supabaseUrl, supabaseKey);
+const supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

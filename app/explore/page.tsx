@@ -1,13 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import ExploreClient from './ExploreClient';
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/supabase/config';
 
 // منع التخزين المؤقت لجلب البيانات مباشرة من قاعدة البيانات في كل زيارة
 export const dynamic = 'force-dynamic';
 
 export default async function ExplorePage() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // 1) المعالم السياحية فقط (بدون التراث)
   const { data: placesData } = await supabase
