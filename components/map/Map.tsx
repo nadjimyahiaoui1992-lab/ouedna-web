@@ -91,24 +91,33 @@ const getCategoryStyle = (category: string): CategoryStyle => {
   return match ?? DEFAULT_CATEGORY_STYLE;
 };
 
-const getCategoryIcon = (category: string) => {
-  const { emoji, bgColor } = getCategoryStyle(category);
-
+const getPhotoPinIcon = (imageUrl?: string) => {
+  const img = imageUrl || '/ouedna/local-architecture.webp';
   return L.divIcon({
-    className: 'soufmap-cat-icon',
+    className: 'soufmap-photo-pin',
     html: `
       <div style="
-        display:flex;align-items:center;justify-content:center;
-        width:32px;height:32px;
-        background:linear-gradient(145deg, ${bgColor}, ${bgColor}dd);
-        border:2.5px solid white;border-radius:50%;
-        box-shadow:0 4px 10px rgba(0,0,0,0.35);
-        font-size:15px;
-      ">${emoji}</div>
+        width: 44px; height: 44px;
+        padding: 3px;
+        background: #D49B45;
+        border: 2.5px solid #ffffff;
+        border-radius: 50% 50% 50% 0;
+        box-shadow: 0 8px 18px rgba(14,75,66,0.35);
+        transform: rotate(-45deg);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+      ">
+        <img src="${img}" style="
+          width: 100%; height: 100%;
+          object-fit: cover;
+          border-radius: 50%;
+          transform: rotate(45deg);
+        " />
+      </div>
     `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -18],
+    iconSize: [44, 44],
+    iconAnchor: [22, 44],
+    popupAnchor: [0, -44],
   });
 };
 
@@ -489,14 +498,14 @@ export default function Map({
         </Marker>
       )}
 
-      {/* بقية المعالم على الخريطة */}
+      {/* بقية المعالم على الخريطة مع دبابيس الصور الاحترافية */}
       {places
         .filter((p) => !routeTarget || p.id !== routeTarget.id)
         .map((place) => (
           <Marker
             key={place.id}
             position={[place.lat, place.lng]}
-            icon={getCategoryIcon(place.category)}
+            icon={getPhotoPinIcon(place.image_url)}
             eventHandlers={{
               click: () => onSelectPlace(place),
             }}
