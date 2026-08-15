@@ -226,7 +226,7 @@ function SoufMapInner({
 
   const handleLocateUser = () => {
     if (!navigator.geolocation) {
-      setLocationError('متصفحك لا يدعم تحديد الموقع الجغرافي.');
+      setUserLocation({ lat: 33.3683, lng: 6.8667 });
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -234,8 +234,12 @@ function SoufMapInner({
         setLocationError(null);
         setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
-      () => setLocationError('تعذّر الوصول لموقعك، تأكد من تفعيل خدمة الموقع GPS.'),
-      { enableHighAccuracy: true, timeout: 8000 }
+      () => {
+        // عند رفض صلاحية GPS، نستخدم مركز مدينة الوادي افتراضياً بسلاسة دون إزعاج المستخدم
+        setUserLocation({ lat: 33.3683, lng: 6.8667 });
+        setLocationError(null);
+      },
+      { enableHighAccuracy: false, timeout: 5000 }
     );
   };
 
@@ -248,19 +252,8 @@ function SoufMapInner({
     setIsPanelCollapsed(false);
 
     if (!userLocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLocationError(null);
-          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          setRouteTarget(place);
-        },
-        () => {
-          setLocationError('تعذّر تحديد موقعك تلقائياً، تم استخدام موقع افتراضي بولاية الوادي.');
-          setUserLocation({ lat: 33.3683, lng: 6.8667 });
-          setRouteTarget(place);
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
+      setUserLocation({ lat: 33.3683, lng: 6.8667 });
+      setRouteTarget(place);
     } else {
       setRouteTarget(place);
     }
