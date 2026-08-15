@@ -372,10 +372,11 @@ export default function Map({
     ? [selectedPlace.lat, selectedPlace.lng]
     : DEFAULT_CENTER;
 
-  // A CSS night treatment on the already-reliable OSM source avoids a blank map
-  // when a third-party dark-tile CDN is blocked or temporarily unavailable.
-  const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-  const tileAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+  const [tileProvider, setTileProvider] = useState<'osm' | 'carto'>('osm');
+  const tileUrl = tileProvider === 'osm'
+    ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const tileAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
 
   // حساب مسار حقيقي: البداية دائماً موقع الزائر الحالي (userLocation)، والنهاية دائماً المعلم المختار (routeTarget)
   useEffect(() => {
