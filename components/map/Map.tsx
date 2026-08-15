@@ -449,7 +449,7 @@ export default function Map({
       attributionControl={true}
     >
       <ApplyMapTheme theme={mapTheme} />
-      <TileLayer key={mapTheme} attribution={tileAttribution} url={tileUrl} />
+      <TileLayer key={mapTheme} attribution={tileAttribution} url={tileUrl} subdomains={['a', 'b', 'c']} maxZoom={19} />
 
       <ResizeHandler />
       <FollowOrFit
