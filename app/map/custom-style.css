@@ -251,3 +251,12 @@
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
 }
+
+/* ==== ضمان عدم ظهور خلفية رمادية وانعكاس البلاطات بشكل كامل ==== */
+.leaflet-tile {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+.leaflet-tile-pane {
+  opacity: 1 !important;
+}
