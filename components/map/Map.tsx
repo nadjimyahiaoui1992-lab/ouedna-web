@@ -209,6 +209,16 @@ function ResizeHandler() {
   return null;
 }
 
+function ApplyMapTheme({ theme }: { theme: 'day' | 'night' }) {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    container.classList.toggle('soufmap-container--night', theme === 'night');
+    return () => container.classList.remove('soufmap-container--night');
+  }, [map, theme]);
+  return null;
+}
+
 /** أزرار التحكّم العائمة أعلى يسار الخريطة (بوصلة / تكبير / تصغير / تحديد الموقع / ملء الشاشة) */
 function MapControls({
   onLocateUser,
@@ -431,6 +441,7 @@ export default function Map({
       zoomControl={false}
       attributionControl={true}
     >
+      <ApplyMapTheme theme={mapTheme} />
       <TileLayer key={mapTheme} attribution={tileAttribution} url={tileUrl} />
 
       <ResizeHandler />
