@@ -224,6 +224,21 @@ function SoufMapInner({
     };
   }, [isNavigating]);
 
+  // تفعيل GPS عالي الدقة فور تحميل الخريطة وتحديثه باستمرار ليتطابق مع دقة التطبيق
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (pos.coords.accuracy <= 100) {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        }
+      },
+      (err) => console.log('GPS watch info:', err.message),
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
   const handleLocateUser = () => {
     if (!navigator.geolocation) {
       setUserLocation({ lat: 33.3683, lng: 6.8667 });
@@ -235,11 +250,20 @@ function SoufMapInner({
         setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
       () => {
-        // عند رفض صلاحية GPS، نستخدم مركز مدينة الوادي افتراضياً بسلاسة دون إزعاج المستخدم
-        setUserLocation({ lat: 33.3683, lng: 6.8667 });
-        setLocationError(null);
+        // إذا فشل الـ GPS الدقيق فوراً، نجرب مرة ثانية بدون highAccuracy قبل الاعتماد على الموقع الافتراضي
+        navigator.geolocation.getCurrentPosition(
+          (fallbackPos) => {
+            setLocationError(null);
+            setUserLocation({ lat: fallbackPos.coords.latitude, lng: fallbackPos.coords.longitude });
+          },
+          () => {
+            setUserLocation({ lat: 33.3683, lng: 6.8667 });
+            setLocationError(null);
+          },
+          { enableHighAccuracy: false, timeout: 7000 }
+        );
       },
-      { enableHighAccuracy: false, timeout: 5000 }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
   };
 
