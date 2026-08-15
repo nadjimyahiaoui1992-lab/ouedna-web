@@ -372,11 +372,15 @@ export default function Map({
     ? [selectedPlace.lat, selectedPlace.lng]
     : DEFAULT_CENTER;
 
-  const [tileProvider, setTileProvider] = useState<'osm' | 'carto'>('osm');
+  const [tileProvider, setTileProvider] = useState<'osm' | 'carto' | 'arcgis'>('osm');
   const tileUrl = tileProvider === 'osm'
     ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-  const tileAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
+    : tileProvider === 'carto'
+    ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+    : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+  const tileAttribution = tileProvider === 'arcgis'
+    ? '&copy; <a href="https://www.esri.com/">Esri</a> &copy; contributors'
+    : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
   // حساب مسار حقيقي: البداية دائماً موقع الزائر الحالي (userLocation)، والنهاية دائماً المعلم المختار (routeTarget)
   useEffect(() => {
