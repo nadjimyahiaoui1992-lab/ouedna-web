@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://cwbenhuiextfoiyfboxo.supabase.co https://routing.openstreetmap.de https://router.project-osrm.org https://nominatim.openstreetmap.org https://api.mymemory.translated.net",
+      "connect-src 'self' https://cwbenhuiextfoiyfboxo.supabase.co https://routing.openstreetmap.de https://router.project-osrm.org https://nominatim.openstreetmap.org https://api.mymemory.translated.net https://*.tile.openstreetmap.org",
       "worker-src 'self' blob:",
       "manifest-src 'self'",
       'upgrade-insecure-requests',

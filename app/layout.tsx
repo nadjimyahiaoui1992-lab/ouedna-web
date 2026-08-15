@@ -20,24 +20,11 @@ const siteDescription = "وادنا هو الدليل السياحي الذكي 
 const siteUrl = "https://ouedna.vercel.app";
 const panoramicOgImage = "/ouedna/hero-oasis.jpg";
 
-export const metadata: Metadata = {
+export const metadata = {
   metadataBase: new URL(siteUrl),
   title: siteTitle,
   description: siteDescription,
-  keywords: ["Ouedna", "وادنا", "وادي سوف", "السياحة في الجزائر", "Wadi Souf", "El Oued"],
   applicationName: "Ouedna",
-  alternates: { canonical: "/" },
-  openGraph: {
-    title: siteTitle,
-    description: siteDescription,
-    type: "website",
-    locale: "ar_AR",
-    siteName,
-    url: siteUrl,
-    images: [{ url: panoramicOgImage, width: 1920, height: 1080, alt: "واحة وكثبان وادي سوف الذهبية - Ouedna" }],
-  },
-  twitter: { card: "summary_large_image", title: siteTitle, description: siteDescription, images: [{ url: panoramicOgImage, alt: "واحة وكثبان وادي سوف الذهبية - Ouedna" }] },
-  icons: { icon: [{ url: "/ouedna/mark.svg", type: "image/svg+xml" }] },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0E4B42" };

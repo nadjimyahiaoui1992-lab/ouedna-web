@@ -372,7 +372,7 @@ export default function Map({
     ? [selectedPlace.lat, selectedPlace.lng]
     : DEFAULT_CENTER;
 
-  const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const tileUrl = '/api/tiles/{z}/{x}/{y}.png';
   const tileAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
   // حساب مسار حقيقي: البداية دائماً موقع الزائر الحالي (userLocation)، والنهاية دائماً المعلم المختار (routeTarget)
