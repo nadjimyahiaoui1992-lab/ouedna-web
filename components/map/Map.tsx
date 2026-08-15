@@ -505,7 +505,7 @@ export default function Map({
           <Marker
             key={place.id}
             position={[place.lat, place.lng]}
-            icon={getPhotoPinIcon(place.image_url)}
+            icon={getPhotoPinIcon(place.image)}
             eventHandlers={{
               click: () => onSelectPlace(place),
             }}
