@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
 import {
   Compass, MapPin, Sparkles, ImageIcon, Upload,
   Landmark as LandmarkIcon, ChevronLeft, ChevronRight, X,
@@ -12,11 +11,10 @@ import {
 } from 'lucide-react';
 import { LanguageProvider, useLanguage, useAutoTranslate, DictKey } from '@/lib/i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/supabase/config';
+import { SUPABASE_URL } from '@/lib/supabase/config';
+import { supabase } from '@/lib/supabase/client';
 
 const supabaseUrl = SUPABASE_URL;
-const supabaseKey = SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 type Place = {
   id: string | number;

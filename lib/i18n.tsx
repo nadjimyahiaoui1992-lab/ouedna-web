@@ -16,14 +16,21 @@ export const LANGUAGES: { code: Lang; label: string; dir: 'rtl' | 'ltr'; flag: s
   { code: 'fr', label: 'Français', dir: 'ltr', flag: '🇫🇷' },
 ];
 
-const STORAGE_KEY = 'souf360_lang';
+const STORAGE_KEY = 'ouedna.language';
+const LEGACY_STORAGE_KEY = 'souf360_lang';
 
 /* ============================= قاموس الترجمة ============================= */
 /* كل مفتاح يحمل النسخ الثلاث. أضف مفتاحاً جديداً هنا فقط وسيظهر مترجماً في كل مكان يستعمله. */
 export const dict = {
   // ------- التنقل العام -------
   home: { ar: 'الرئيسية', en: 'Home', fr: 'Accueil' },
+  explore: { ar: 'استكشف', en: 'Explore', fr: 'Explorer' },
   map: { ar: 'الخريطة', en: 'Map', fr: 'Carte' },
+  archive: { ar: 'ذاكرة الوادي', en: 'El Oued Memories', fr: "Mémoire d'El Oued" },
+  community: { ar: 'المجتمع', en: 'Community', fr: 'Communauté' },
+  favorites: { ar: 'المفضلة', en: 'Favorites', fr: 'Favoris' },
+  updates: { ar: 'مركز التحديثات', en: 'Updates', fr: 'Mises à jour' },
+  downloadApp: { ar: 'حمّل التطبيق', en: 'Download app', fr: "Télécharger l'application" },
   events: { ar: 'الفعاليات', en: 'Events', fr: 'Événements' },
   restaurants: { ar: 'المطاعم', en: 'Restaurants', fr: 'Restaurants' },
   hotels: { ar: 'الفنادق', en: 'Hotels', fr: 'Hôtels' },
@@ -173,8 +180,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(STORAGE_KEY) as Lang | null;
-      if (saved && LANGUAGES.some((l) => l.code === saved)) setLangState(saved);
+      const saved = (window.localStorage.getItem(STORAGE_KEY) || window.localStorage.getItem(LEGACY_STORAGE_KEY)) as Lang | null;
+      if (saved && LANGUAGES.some((l) => l.code === saved)) {
+        setLangState(saved);
+        window.localStorage.setItem(STORAGE_KEY, saved);
+      }
     } catch {
       // تجاهل أي خطأ فالقراءة من التخزين المحلي
     }

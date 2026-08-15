@@ -37,7 +37,7 @@ import {
 import dynamic from 'next/dynamic';
 import { Place } from '@/data/places';
 import { RouteInfo, RouteStep } from './Map';
-import { LanguageProvider, useLanguage, DictKey } from '@/lib/i18n';
+import { useLanguage, DictKey } from '@/lib/i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const DynamicMap = dynamic(() => import('./Map'), {
@@ -113,11 +113,7 @@ export default function SoufMap(props: {
   initialLng?: number | null;
   initialAutoRoute?: boolean;
 }) {
-  return (
-    <LanguageProvider>
-      <SoufMapInner {...props} />
-    </LanguageProvider>
-  );
+  return <SoufMapInner {...props} />;
 }
 
 function SoufMapInner({

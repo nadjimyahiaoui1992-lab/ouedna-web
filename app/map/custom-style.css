@@ -18,6 +18,24 @@
   z-index: 0;
   background: #0b1220;
 }
+.soufmap-container--night {
+  background: #101a35;
+}
+.soufmap-container--night .leaflet-tile-pane {
+  filter: brightness(0.56) saturate(0.66) hue-rotate(132deg) contrast(1.08);
+}
+.soufmap-container--night .leaflet-control-attribution {
+  color: #d9e5df !important;
+  background: rgba(9, 18, 35, 0.78) !important;
+}
+.soufmap-container--night .leaflet-control-attribution a {
+  color: #f0c875 !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .soufmap-container .leaflet-tile-pane {
+    transition: filter 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+}
 .leaflet-control-attribution {
   background: rgba(11, 18, 32, 0.75) !important;
   color: #94a3b8 !important;

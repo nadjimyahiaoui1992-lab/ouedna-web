@@ -3,15 +3,14 @@
 import { CalendarDays, Check, Compass, LocateFixed, MapPin, Navigation, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/config";
+import { supabase } from "@/lib/supabase/client";
 
 type Place = { id: number; name: string; description?: string; main_category?: string; category?: string; municipality?: string; image_url?: unknown; lat?: number; lng?: number };
 function imageFor(value: unknown) { if (Array.isArray(value)) return String(value[0] || ""); if (typeof value === "string") return value.replace(/[\[\]"']/g, "").split(",")[0]?.trim() || ""; return ""; }
 
 export default function ItineraryClient() {
   const [places, setPlaces] = useState<Place[]>([]); const [length, setLength] = useState<"سريع" | "نصف يوم" | "يوم كامل">("نصف يوم"); const [categories, setCategories] = useState<string[]>([]); const [origin, setOrigin] = useState(false); const [locating, setLocating] = useState(false); const [loading, setLoading] = useState(true); const [generated, setGenerated] = useState(false);
-  useEffect(() => { const load = async () => { const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY); const { data } = await supabase.from("places").select("*").eq("status", "منشور").order("id", { ascending: false }); setPlaces((data || []) as Place[]); setLoading(false); }; load(); }, []);
+  useEffect(() => { const load = async () => { const { data } = await supabase.from("places").select("*").eq("status", "منشور").order("id", { ascending: false }); setPlaces((data || []) as Place[]); setLoading(false); }; load(); }, []);
   const allCategories = useMemo(() => Array.from(new Set(places.map((place) => place.category || place.main_category).filter(Boolean) as string[])), [places]);
   const limit = length === "سريع" ? 2 : length === "نصف يوم" ? 3 : 5;
   const itinerary = useMemo(() => places.filter((place) => !categories.length || categories.includes(place.category || place.main_category || "")).slice(0, limit), [places, categories, limit]);

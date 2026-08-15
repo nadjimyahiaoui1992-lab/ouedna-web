@@ -25,7 +25,11 @@ export interface Place {
 }
 
 export async function getPlacesFromDB(): Promise<Place[]> {
-  const { data, error } = await supabase.from('places').select('*');
+  const { data, error } = await supabase
+    .from('places')
+    .select('*')
+    .eq('status', 'منشور')
+    .order('id', { ascending: false });
 
   if (error || !data) {
     console.error("خطأ في جلب البيانات من قاعدة البيانات:", error);

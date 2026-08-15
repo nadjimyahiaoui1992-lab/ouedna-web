@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { getPlacesFromDB, Place } from '@/data/places';
 import { Compass } from 'lucide-react';
 import PlatformHeader from '@/components/platform/PlatformHeader';
+import { LanguageProvider } from '@/lib/i18n';
 
 const SoufMap = dynamic(() => import('@/components/map/SoufMap'), {
   ssr: false,
@@ -47,9 +48,9 @@ function MapContent() {
   }
 
   return (
-    <main dir="rtl" className="min-h-[100dvh] bg-[#0f172a] text-white flex flex-col overflow-hidden">
+    <LanguageProvider><main className="min-h-[100dvh] bg-[#0f172a] text-white flex flex-col overflow-hidden">
       <div className="app-map-shell"><PlatformHeader active="/map" /><div className="app-map-canvas"><SoufMap places={places} embedded initialDestinationQuery={destinationParam} /></div></div>
-    </main>
+    </main></LanguageProvider>
   );
 }
 

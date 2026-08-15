@@ -2,8 +2,7 @@
 
 import { Camera, CheckCircle2, Image as ImageIcon, LoaderCircle, MessageSquareHeart, Send, Star } from "lucide-react";
 import { useRef, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/config";
+import { supabase } from "@/lib/supabase/client";
 
 type Experience = { id: string | number; name?: string | null; message: string; photos?: unknown; created_at?: string };
 
@@ -16,7 +15,7 @@ export default function CommunityClient({ experiences }: { experiences: Experien
     if (!message.trim()) { setError("اكتب تجربتك أولاً."); return; }
     setSending(true); setError("");
     try {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY); const photoUrls: string[] = [];
+      const photoUrls: string[] = [];
       for (const file of files.slice(0, 5)) { const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_"); const path = `testimonials/${Date.now()}-${safeName}`; const upload = await supabase.storage.from("testimonials-photos").upload(path, file, { cacheControl: "3600", upsert: false }); if (upload.error) throw upload.error; photoUrls.push(supabase.storage.from("testimonials-photos").getPublicUrl(path).data.publicUrl); }
       const insert = await supabase.from("testimonials").insert({ name: name.trim() || null, message: message.trim(), photos: photoUrls, status: "pending" }); if (insert.error) throw insert.error;
       setDone(true); setName(""); setMessage(""); setFiles([]); if (fileRef.current) fileRef.current.value = "";

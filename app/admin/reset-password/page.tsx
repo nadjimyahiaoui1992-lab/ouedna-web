@@ -3,10 +3,8 @@
 /** Ouedna Admin security flow: production-only password recovery at /admin/reset-password. */
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/config";
-
-const supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase/client";
 
 function isStrongPassword(password: string) {
   return password.length >= 12
@@ -34,7 +32,7 @@ export default function ResetPasswordPage() {
     };
     void loadSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (event === "PASSWORD_RECOVERY" || session) setRecoverySession(true);
     });
     return () => listener.subscription.unsubscribe();

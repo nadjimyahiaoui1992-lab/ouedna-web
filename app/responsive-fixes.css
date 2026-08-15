@@ -1,0 +1,12 @@
+/* Ouedna responsive stability: preserve calm-sands cards without horizontal overflow or overlap. */
+.app-explore-toolbar{grid-template-columns:minmax(0,.9fr) minmax(0,1.6fr)}
+.app-explore-toolbar label,.app-category-scroll,.app-explore-toolbar input{min-width:0}
+.app-results-meta{gap:12px}.app-results-meta span{min-width:0}
+.app-explore-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.app-explore-card,.app-explore-card__body,.app-explore-card__body>a{min-width:0}
+.app-explore-card__image span{max-width:calc(100% - 68px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-explore-card__body h2{overflow-wrap:anywhere}
+.app-explore-card__body p{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-explore-card__body>div{gap:8px;min-width:0}.app-explore-card__body>div span{min-width:0;white-space:nowrap}.app-explore-card__body>div a{min-width:0;overflow:hidden;text-align:end;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:900px){.app-explore-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.app-explore-grid{grid-template-columns:minmax(0,1fr)}.app-results-meta{align-items:flex-start;flex-direction:column}.app-explore-toolbar label{min-height:46px}}

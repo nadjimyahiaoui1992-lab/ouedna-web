@@ -353,15 +353,10 @@ export default function Map({
     ? [selectedPlace.lat, selectedPlace.lng]
     : DEFAULT_CENTER;
 
-  const tileUrl =
-    mapTheme === 'night'
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-  const tileAttribution =
-    mapTheme === 'night'
-      ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-      : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+  // A CSS night treatment on the already-reliable OSM source avoids a blank map
+  // when a third-party dark-tile CDN is blocked or temporarily unavailable.
+  const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const tileAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
   // حساب مسار حقيقي: البداية دائماً موقع الزائر الحالي (userLocation)، والنهاية دائماً المعلم المختار (routeTarget)
   useEffect(() => {
@@ -431,7 +426,7 @@ export default function Map({
     <MapContainer
       center={defaultCenter}
       zoom={isNavigating ? 17 : 13}
-      className="soufmap-container"
+      className={`soufmap-container${mapTheme === 'night' ? ' soufmap-container--night' : ''}`}
       style={{ height: '100%', width: '100%' }}
       zoomControl={false}
       attributionControl={true}

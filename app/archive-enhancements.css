@@ -1,0 +1,6 @@
+/* Ouedna archive: show provenance and verified image collections without overwhelming the original memory card. */
+.platform-archive-card__gallery{position:absolute!important;z-index:2;top:14px;right:14px;bottom:auto!important;left:auto!important;display:flex;gap:5px;color:#fff}
+.platform-archive-card__gallery img{width:38px!important;height:38px!important;min-height:0!important;border:2px solid rgba(255,255,255,.8);border-radius:8px;object-fit:cover;box-shadow:0 5px 12px rgba(0,0,0,.2)}
+.platform-archive-card__gallery span{display:grid;place-items:center;min-width:38px;height:38px;padding:0 7px;border:1px solid rgba(255,255,255,.45);border-radius:8px;color:#fff;background:rgba(7,41,36,.72);font:800 10px "DM Sans",sans-serif;backdrop-filter:blur(8px)}
+.platform-archive-card__content{position:absolute;z-index:1;right:19px;bottom:18px;left:19px;color:#fff}.platform-archive-card__content span{color:var(--amber);font:700 10px "DM Sans",sans-serif}.platform-archive-card__content h2{margin:6px 0;font:800 17px "Noto Kufi Arabic",sans-serif}.platform-archive-card__content p{margin:0;color:rgba(255,255,255,.72);font-size:11px;line-height:1.7}
+@media (max-width:700px){.platform-archive-card__gallery{right:12px;top:12px}.platform-archive-card__gallery img,.platform-archive-card__gallery span{width:34px!important;min-width:34px;height:34px}}
