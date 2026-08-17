@@ -39,6 +39,7 @@ export default function DashboardPage() {
   /* ---------- حالة التنقل ---------- */
   const [view, setView] = useState('overview');
   const [placesMenuOpen, setPlacesMenuOpen] = useState(false);
+  const [placesFilter, setPlacesFilter] = useState('all');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   /* ---------- حالة النظام ---------- */
@@ -240,6 +241,9 @@ export default function DashboardPage() {
   }
 
   const pendingMemoriesCount = memories.filter(m => !m.approved).length;
+  const visiblePlaces = placesFilter === 'clinics'
+    ? places.filter((place) => place.main_category === 'مرافق صحية')
+    : places;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#334155] font-sans flex selection:bg-[#D4AF37] selection:text-white" dir="rtl">
@@ -280,7 +284,8 @@ export default function DashboardPage() {
             {placesMenuOpen && (
               <div className="flex flex-col gap-1 pr-11 mt-2 border-r-2 border-[#F1F5F9]">
                 <button className={`p-2.5 text-xs font-bold text-right rounded-lg transition-all ${view === 'add-place' ? 'text-[#B8962E] bg-[#F8FAFC]' : 'text-[#64748B] hover:text-[#0F172A]'}`} onClick={() => goTo('add-place')}>＋ إدراج معلم جديد</button>
-                <button className={`p-2.5 text-xs font-bold text-right rounded-lg transition-all ${view === 'places' ? 'text-[#B8962E] bg-[#F8FAFC]' : 'text-[#64748B] hover:text-[#0F172A]'}`} onClick={() => goTo('places')}>📋 قاعدة بيانات المعالم</button>
+                <button className={`p-2.5 text-xs font-bold text-right rounded-lg transition-all ${view === 'places' && placesFilter === 'all' ? 'text-[#B8962E] bg-[#F8FAFC]' : 'text-[#64748B] hover:text-[#0F172A]'}`} onClick={() => { setPlacesFilter('all'); goTo('places'); }}>📋 قاعدة بيانات المعالم</button>
+                <button className={`p-2.5 text-xs font-bold text-right rounded-lg transition-all ${view === 'places' && placesFilter === 'clinics' ? 'text-[#B8962E] bg-[#F8FAFC]' : 'text-[#64748B] hover:text-[#0F172A]'}`} onClick={() => { setPlacesFilter('clinics'); goTo('places'); }}>🏥 قائمة العيادات الصحية</button>
               </div>
             )}
           </div>
@@ -424,20 +429,23 @@ export default function DashboardPage() {
           {/* 3. قاعدة بيانات المعالم */}
           {view === 'places' && (
             <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden max-w-7xl mx-auto animate-fade-in">
-              <div className="p-6 border-b border-[#E2E8F0] flex justify-between items-center bg-[#F8FAFC]">
-                <h2 className="text-xl font-black text-[#0F172A]">السجل الموحد للمعالم السياحية</h2>
+              <div className="p-6 border-b border-[#E2E8F0] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#F8FAFC]">
+                <div>
+                  <h2 className="text-xl font-black text-[#0F172A]">{placesFilter === 'clinics' ? 'قائمة العيادات الصحية' : 'السجل الموحد للمعالم السياحية'}</h2>
+                  <p className="text-xs text-[#64748B] mt-1">{visiblePlaces.length} سجل — {placesFilter === 'clinics' ? 'المسودات مخفية عن الزوار حتى تعديلها واعتماد نشرها يدويًا.' : 'يمكن تعديل السجلات أو تغيير حالة ظهورها.'}</p>
+                </div>
                 <button onClick={() => goTo('add-place')} className="bg-[#D4AF37] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#B8962E] transition-colors shadow-sm">＋ إضافة سجل</button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-right text-sm">
                   <thead className="bg-white text-[#64748B] border-b-2 border-[#F1F5F9]">
-                    <tr><th className="p-5 font-bold">الصورة</th><th className="p-5 font-bold">اسم المعلم</th><th className="p-5 font-bold">التصنيف الرئيسي</th><th className="p-5 font-bold">حالة الظهور</th><th className="p-5 font-bold text-left">إدارة السجل</th></tr>
+                    <tr><th className="p-5 font-bold">الصورة</th><th className="p-5 font-bold">اسم المعلم</th><th className="p-5 font-bold">التصنيف / التخصص</th><th className="p-5 font-bold">حالة الظهور</th><th className="p-5 font-bold text-left">إدارة السجل</th></tr>
                   </thead>
                   <tbody>
-                    {places.length === 0 && !isLoading && (
-                      <tr><td colSpan={5} className="p-10 text-center text-[#94A3B8] font-bold">لا توجد سجلات معالم حتى الآن</td></tr>
+                    {visiblePlaces.length === 0 && !isLoading && (
+                      <tr><td colSpan={5} className="p-10 text-center text-[#94A3B8] font-bold">لا توجد سجلات في هذا القسم حتى الآن</td></tr>
                     )}
-                    {places.map(p => (
+                    {visiblePlaces.map(p => (
                       <tr key={p.id} className="border-b border-[#F1F5F9] hover:bg-[#F8FAFC] transition-colors">
                         <td className="p-5">
                           {p.image_url ? (
@@ -447,7 +455,7 @@ export default function DashboardPage() {
                           )}
                         </td>
                         <td className="p-5 font-black text-[#0F172A]">{p.name}</td>
-                        <td className="p-5 text-[#475569] font-medium">{p.main_category}</td>
+                        <td className="p-5 text-[#475569] font-medium">{p.main_category}{p.sub_category ? ` · ${p.sub_category}` : ''}</td>
                         <td className="p-5">
                           {p.status === 'قيد المراجعة' ? (
                             <div className="flex flex-wrap gap-2">
