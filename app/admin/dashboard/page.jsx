@@ -26,6 +26,15 @@ const SITE_STATUS_MAP = {
 
 const EMPTY_ADMIN_FORM = { name: '', email: '', role: 'مشرف', active: true };
 const EMPTY_HERITAGE_FORM = { title: '', image: '', text: '' };
+const EMPTY_RELEASE_CONFIG = {
+  latest_version: '',
+  force_update: false,
+  android_store_url: '',
+  direct_apk_url: '',
+  apk_sha256: '',
+  release_notes: '',
+};
+const EMPTY_RELEASE_NOTIFICATION = { title: '', body: '' };
 
 const IconChevron = ({ open }) => (
   <svg className={`mr-auto transition-transform duration-300 ${open ? 'rotate-180' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -56,6 +65,10 @@ export default function DashboardPage() {
   const [heritageItems, setHeritageItems] = useState([]);
   const [memories, setMemories] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
+  const [releaseConfig, setReleaseConfig] = useState(EMPTY_RELEASE_CONFIG);
+  const [releaseNotification, setReleaseNotification] = useState(EMPTY_RELEASE_NOTIFICATION);
+  const [savingRelease, setSavingRelease] = useState(false);
+  const [sendingReleaseNotification, setSendingReleaseNotification] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   /* ---------- النماذج ---------- */
@@ -91,6 +104,21 @@ export default function DashboardPage() {
 
     const { data: sData } = await supabase.from('site_settings').select('*').eq('id', 1).single();
     if (sData?.site_status) setSiteStatus(sData.site_status);
+
+    const { data: rData } = await supabase
+      .from('app_config')
+      .select('latest_version, force_update, android_store_url, direct_apk_url, apk_sha256, release_notes')
+      .eq('id', 1)
+      .maybeSingle();
+    if (rData) {
+      setReleaseConfig({ ...EMPTY_RELEASE_CONFIG, ...rData, force_update: rData.force_update === true });
+      setReleaseNotification((current) => current.title || current.body
+        ? current
+        : {
+            title: `تحديث وادنا ${rData.latest_version || ''} متاح`.trim(),
+            body: 'نسخة جديدة متاحة: تحسينات في الخريطة والملاحة. افتح وادنا لبدء التحديث.',
+          });
+    }
 
     setIsLoading(false);
   }
@@ -143,6 +171,87 @@ export default function DashboardPage() {
   async function handleLogout() {
     await supabase.auth.signOut();
     router.push(LOGIN_PATH);
+  }
+
+  function validateReleaseConfig() {
+    if (!/^\d+\.\d+\.\d+$/.test(releaseConfig.latest_version.trim())) {
+      return 'رقم الإصدار يجب أن يكون بالصيغة 2.1.6';
+    }
+    if (!/^https:\/\//i.test(releaseConfig.direct_apk_url.trim())) {
+      return 'رابط APK يجب أن يبدأ بـ HTTPS';
+    }
+    if (!/^[a-f0-9]{64}$/i.test(releaseConfig.apk_sha256.trim())) {
+      return 'SHA-256 يجب أن تتكون من 64 حرفاً سداسياً';
+    }
+    if (!releaseConfig.release_notes.trim()) return 'أدخل ملاحظات الإصدار';
+    return null;
+  }
+
+  async function saveReleaseConfig() {
+    const validationError = validateReleaseConfig();
+    if (validationError) {
+      showToast(validationError);
+      return;
+    }
+    if (!window.confirm('سيصبح هذا الإصدار متاحاً داخل التطبيق. هل تريد المتابعة؟')) return;
+    setSavingRelease(true);
+    const { error } = await supabase
+      .from('app_config')
+      .update({
+        latest_version: releaseConfig.latest_version.trim(),
+        force_update: releaseConfig.force_update === true,
+        android_store_url: releaseConfig.android_store_url.trim() || null,
+        direct_apk_url: releaseConfig.direct_apk_url.trim(),
+        apk_sha256: releaseConfig.apk_sha256.trim().toLowerCase(),
+        release_notes: releaseConfig.release_notes.trim(),
+      })
+      .eq('id', 1);
+    if (error) showToast(`تعذر تفعيل الإصدار: ${error.message}`);
+    else showToast('تم تفعيل إعدادات الإصدار بنجاح. لم يُرسل Push بعد.');
+    setSavingRelease(false);
+  }
+
+  async function sendReleaseNotification() {
+    const validationError = validateReleaseConfig();
+    if (validationError) {
+      showToast(validationError);
+      return;
+    }
+    if (!releaseNotification.title.trim() || !releaseNotification.body.trim()) {
+      showToast('أدخل عنوان ونص الإشعار أولاً');
+      return;
+    }
+    const { data: persistedConfig, error: persistedConfigError } = await supabase
+      .from('app_config')
+      .select('latest_version, direct_apk_url, apk_sha256')
+      .eq('id', 1)
+      .maybeSingle();
+    const formMatchesSavedConfig = persistedConfig
+      && persistedConfig.latest_version === releaseConfig.latest_version.trim()
+      && persistedConfig.direct_apk_url === releaseConfig.direct_apk_url.trim()
+      && persistedConfig.apk_sha256?.toLowerCase() === releaseConfig.apk_sha256.trim().toLowerCase();
+    if (persistedConfigError || !formMatchesSavedConfig) {
+      showToast('احفظ إعدادات الإصدار أولاً قبل إرسال الإشعار');
+      return;
+    }
+    const confirmed = window.confirm(
+      `سيتم إرسال إشعار الإصدار ${releaseConfig.latest_version} إلى أجهزة Android المسجلة. هل تؤكد الإرسال؟`,
+    );
+    if (!confirmed) return;
+    setSendingReleaseNotification(true);
+    const { data, error } = await supabase.functions.invoke('send-release-notification', {
+      body: {
+        release_version: releaseConfig.latest_version.trim(),
+        title: releaseNotification.title.trim(),
+        body: releaseNotification.body.trim(),
+      },
+    });
+    if (error) {
+      showToast(`تعذر إرسال الإشعار: ${error.message}`);
+    } else {
+      showToast(`تم إرسال الإشعار: ${data?.sent ?? 0} جهاز، الحالة ${data?.status || 'غير معروفة'}`);
+    }
+    setSendingReleaseNotification(false);
   }
 
   /* ---------- العمليات على البيانات ---------- */
@@ -276,6 +385,9 @@ export default function DashboardPage() {
           <button className={`flex items-center gap-3.5 p-3.5 text-sm font-bold rounded-xl text-right transition-all duration-300 ${view === 'overview' ? 'bg-[#F8FAFC] text-[#B8962E] shadow-sm ring-1 ring-[#E2E8F0]' : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]'}`} onClick={() => goTo('overview')}>
             <span className="text-lg">📊</span> المركز الرئيسي
           </button>
+          <button className={`flex items-center gap-3.5 p-3.5 text-sm font-bold rounded-xl text-right transition-all ${view === 'release' ? 'bg-[#F8FAFC] text-[#B8962E] shadow-sm ring-1 ring-[#E2E8F0]' : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]'}`} onClick={() => goTo('release')}>
+            <span className="text-lg">🔄</span> إدارة تحديث التطبيق
+          </button>
 
           <div>
             <button className="w-full flex items-center gap-3.5 p-3.5 text-sm font-bold rounded-xl text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] text-right transition-all" onClick={() => setPlacesMenuOpen(!placesMenuOpen)}>
@@ -403,7 +515,84 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* 2. إدراج معلم */}
+          {/* 2. مركز إصدار التطبيق */}
+          {view === 'release' && (
+            <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
+              <div className="bg-gradient-to-r from-[#193F38] to-[#102D28] p-8 rounded-2xl border border-[#D4AF37]/30 shadow-md text-white flex flex-col lg:flex-row justify-between gap-5">
+                <div>
+                  <span className="bg-[#D4AF37] text-black font-black text-xs px-3 py-1 rounded-full">تحكم يدوي وآمن</span>
+                  <h1 className="text-2xl font-black mt-3">إدارة تحديث تطبيق وادنا</h1>
+                  <p className="text-[#E2E8F0] text-sm mt-2 max-w-2xl">احفظ بيانات APK أولاً، اختبر التحديث على هاتف مسؤول، ثم أرسل الإشعار بشكل منفصل بعد تأكيد صريح.</p>
+                </div>
+                <div className="self-start bg-black/30 px-5 py-3 rounded-xl border border-white/10 text-center">
+                  <span className="block text-xs text-[#D4AF37] font-bold">الحالة الحالية</span>
+                  <span className="text-sm font-extrabold text-emerald-400">{releaseConfig.latest_version || 'غير مهيأ'} · {releaseConfig.force_update ? 'إجباري' : 'اختياري'}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <section className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm p-6 space-y-5">
+                  <div>
+                    <h2 className="text-xl font-black text-[#0F172A]">بيانات الإصدار وملف APK</h2>
+                    <p className="text-xs text-[#64748B] mt-1">تُحفظ هذه القيم في `app_config` ويقرأها تطبيق Android عند فحص التحديث.</p>
+                  </div>
+                  <label className="block text-sm font-bold text-[#334155]">
+                    رقم الإصدار
+                    <input dir="ltr" value={releaseConfig.latest_version} onChange={(e) => setReleaseConfig({ ...releaseConfig, latest_version: e.target.value })} placeholder="2.1.6" className="mt-2 w-full border border-[#CBD5E1] rounded-lg px-3 py-2.5 text-left focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" />
+                  </label>
+                  <label className="block text-sm font-bold text-[#334155]">
+                    رابط APK المباشر HTTPS
+                    <input dir="ltr" type="url" value={releaseConfig.direct_apk_url} onChange={(e) => setReleaseConfig({ ...releaseConfig, direct_apk_url: e.target.value })} placeholder="https://.../app-direct-release.apk" className="mt-2 w-full border border-[#CBD5E1] rounded-lg px-3 py-2.5 text-left text-xs focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" />
+                  </label>
+                  <label className="block text-sm font-bold text-[#334155]">
+                    SHA-256 للملف المنشور
+                    <input dir="ltr" value={releaseConfig.apk_sha256} onChange={(e) => setReleaseConfig({ ...releaseConfig, apk_sha256: e.target.value })} placeholder="64 حرفاً سداسياً" className="mt-2 w-full border border-[#CBD5E1] rounded-lg px-3 py-2.5 text-left text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" />
+                  </label>
+                  <label className="block text-sm font-bold text-[#334155]">
+                    ملاحظات الإصدار
+                    <textarea value={releaseConfig.release_notes} onChange={(e) => setReleaseConfig({ ...releaseConfig, release_notes: e.target.value })} rows={4} className="mt-2 w-full border border-[#CBD5E1] rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" />
+                  </label>
+                  <label className="flex items-center gap-3 rounded-lg bg-[#FFFBEB] border border-[#FDE68A] p-3 text-sm font-bold text-[#92400E]">
+                    <input type="checkbox" checked={releaseConfig.force_update === true} onChange={(e) => setReleaseConfig({ ...releaseConfig, force_update: e.target.checked })} className="h-4 w-4 accent-[#D4AF37]" />
+                    فرض التحديث على المستخدمين (استخدمه فقط عند الحاجة الأمنية أو التشغيلية)
+                  </label>
+                  <button onClick={saveReleaseConfig} disabled={savingRelease} className="w-full bg-[#D4AF37] text-white px-5 py-3 rounded-lg text-sm font-black hover:bg-[#B8962E] transition-colors disabled:opacity-60">
+                    {savingRelease ? 'جارٍ حفظ الإصدار...' : 'حفظ وتفعيل إعدادات الإصدار'}
+                  </button>
+                </section>
+
+                <section className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm p-6 space-y-5">
+                  <div>
+                    <h2 className="text-xl font-black text-[#0F172A]">إشعار Push</h2>
+                    <p className="text-xs text-[#64748B] mt-1">يُرسل إلى أجهزة Android المسجلة عبر وظيفة Supabase المصادق عليها.</p>
+                  </div>
+                  <label className="block text-sm font-bold text-[#334155]">
+                    عنوان الإشعار
+                    <input value={releaseNotification.title} onChange={(e) => setReleaseNotification({ ...releaseNotification, title: e.target.value })} className="mt-2 w-full border border-[#CBD5E1] rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" />
+                  </label>
+                  <label className="block text-sm font-bold text-[#334155]">
+                    نص الإشعار
+                    <textarea value={releaseNotification.body} onChange={(e) => setReleaseNotification({ ...releaseNotification, body: e.target.value })} rows={5} className="mt-2 w-full border border-[#CBD5E1] rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" />
+                  </label>
+                  <div className="rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] p-4 text-sm text-[#475569] space-y-2">
+                    <p className="font-black text-[#0F172A]">معاينة</p>
+                    <p className="font-bold">{releaseNotification.title || 'عنوان الإشعار سيظهر هنا'}</p>
+                    <p>{releaseNotification.body || 'نص الإشعار سيظهر هنا'}</p>
+                  </div>
+                  <button onClick={sendReleaseNotification} disabled={sendingReleaseNotification} className="w-full bg-[#193F38] text-white px-5 py-3 rounded-lg text-sm font-black hover:bg-[#102D28] transition-colors disabled:opacity-60">
+                    {sendingReleaseNotification ? 'جارٍ إرسال الإشعار...' : 'إرسال Push بعد التأكيد'}
+                  </button>
+                  <p className="text-xs text-[#64748B] leading-6">لن يتم الإرسال بمجرد فتح الشاشة. سيظهر تأكيد نهائي، وتُسجّل النتيجة في سجل إشعارات الإصدار.</p>
+                </section>
+              </div>
+
+              <div className="rounded-xl bg-[#FEF2F2] border border-[#FECACA] p-4 text-sm text-[#991B1B] font-bold leading-7">
+                لا تضع مفتاح Service Role في المتصفح. تعتمد هذه الشاشة على جلسة Admin الحالية، وتستدعي وظيفة Push التي تتحقق من دور admin أو supervisor قبل الإرسال.
+              </div>
+            </div>
+          )}
+
+          {/* 3. إدراج معلم */}
           {view === 'add-place' && <div className="max-w-5xl mx-auto"><AddPlaceForm /></div>}
 
           {/* 2ب. تعديل معلم */}
